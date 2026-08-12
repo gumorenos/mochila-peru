@@ -22,7 +22,7 @@ Abre `index.html` directamente en el navegador, o sirve la carpeta con cualquier
 npx serve .
 ```
 
-Los checks y las fechas de vencimiento se guardan en `localStorage`, en el navegador del usuario.
+La configuración del hogar, riesgos, vista de lista, checks y fechas de rotación se guardan en `localStorage`, en el navegador del usuario.
 
 ## Despliegue recomendado: Cloudflare Pages
 

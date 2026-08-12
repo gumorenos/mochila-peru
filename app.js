@@ -70,6 +70,14 @@
     "sur-volcanico": "Sur volcánico: considera ceniza, sismo, frío nocturno y protección respiratoria."
   };
 
+  var ZONE_PRESETS = {
+    "lima-costa": ["sismo", "corte"],
+    "costa-norte": ["sismo", "huaico", "lluvias", "corte"],
+    sierra: ["sismo", "huaico", "friaje", "corte"],
+    selva: ["lluvias", "corte"],
+    "sur-volcanico": ["sismo", "ceniza", "friaje", "corte"]
+  };
+
   var ICONS = {
     agua: "H2O",
     alimentos: "CAL",
@@ -91,6 +99,8 @@
   var currentKey = "";
   var storageOk = true;
   var currentPlan = null;
+  var CONFIG_KEY = "mochila-peru:config";
+  var OPTIONS_KEY = "mochila-peru:list-options";
 
   function priorityRank(priority) {
     if (priority === "crítico") return 0;
@@ -120,6 +130,75 @@
       apartment: $("input[name=apartment]").checked,
       days: parseInt(($("input[name=days]:checked") || {}).value || "3", 10)
     };
+  }
+
+  function applyConfig(cfg) {
+    if (!cfg) return;
+    var zone = cfg.zone || "lima-costa";
+    var zoneInput = $("input[name=zone][value='" + zone + "']");
+    if (zoneInput) zoneInput.checked = true;
+    $$("input[name=hazard]").forEach(function (c) {
+      c.checked = !!(cfg.hazards && cfg.hazards[c.value]);
+    });
+    ["adults", "children", "infants", "elderly", "pets"].forEach(function (id) {
+      if (cfg[id] != null) $("#" + id).value = cfg[id];
+    });
+    $("input[name=meds]").checked = !!cfg.meds;
+    $("input[name=mobility]").checked = !!cfg.mobility;
+    $("input[name=apartment]").checked = !!cfg.apartment;
+    var daysInput = $("input[name=days][value='" + (cfg.days || 3) + "']");
+    if (daysInput) daysInput.checked = true;
+  }
+
+  function loadConfig() {
+    if (!storageOk) return null;
+    try {
+      return JSON.parse(localStorage.getItem(CONFIG_KEY) || "null");
+    } catch (e) {
+      return null;
+    }
+  }
+
+  function saveConfig() {
+    if (!storageOk) return;
+    try {
+      localStorage.setItem(CONFIG_KEY, JSON.stringify(readConfig()));
+    } catch (e) {
+      storageOk = false;
+    }
+  }
+
+  function applyListOptions(opts) {
+    if (!opts) return;
+    var viewInput = $("input[name=viewMode][value='" + (opts.view || "category") + "']");
+    if (viewInput) viewInput.checked = true;
+    if (opts.priority && $("#priorityFilter")) $("#priorityFilter").value = opts.priority;
+    if (opts.sort && $("#sortMode")) $("#sortMode").value = opts.sort;
+  }
+
+  function loadListOptions() {
+    if (!storageOk) return null;
+    try {
+      return JSON.parse(localStorage.getItem(OPTIONS_KEY) || "null");
+    } catch (e) {
+      return null;
+    }
+  }
+
+  function saveListOptions() {
+    if (!storageOk) return;
+    try {
+      localStorage.setItem(OPTIONS_KEY, JSON.stringify(listOptions()));
+    } catch (e) {
+      storageOk = false;
+    }
+  }
+
+  function applyZonePreset(zone) {
+    var preset = ZONE_PRESETS[zone] || ZONE_PRESETS["lima-costa"];
+    $$("input[name=hazard]").forEach(function (c) {
+      c.checked = preset.indexOf(c.value) !== -1;
+    });
   }
 
   function configKey(cfg) {
@@ -522,21 +601,6 @@
   function updateZoneHint() {
     var cfg = readConfig();
     $("#zoneHint").textContent = ZONE_HINTS[cfg.zone] || "";
-    if (cfg.zone === "costa-norte") {
-      $("input[value=lluvias]").checked = true;
-      $("input[value=huaico]").checked = true;
-    }
-    if (cfg.zone === "sierra") {
-      $("input[value=friaje]").checked = true;
-      $("input[value=huaico]").checked = true;
-    }
-    if (cfg.zone === "selva") {
-      $("input[value=lluvias]").checked = true;
-    }
-    if (cfg.zone === "sur-volcanico") {
-      $("input[value=ceniza]").checked = true;
-      $("input[value=friaje]").checked = true;
-    }
   }
 
   function build(preserveChecks) {
@@ -553,6 +617,7 @@
   }
 
   function refreshListOnly() {
+    saveListOptions();
     if (currentPlan) renderChecklist(currentPlan);
   }
 
@@ -584,15 +649,24 @@
     $("#sortMode").addEventListener("change", refreshListOnly);
     $$("input[name=zone]").forEach(function (r) {
       r.addEventListener("change", function () {
+        applyZonePreset(r.value);
         updateZoneHint();
+        saveConfig();
         build(false);
       });
     });
-    $$("input").forEach(function (i) {
-      if (i.name !== "zone") i.addEventListener("change", function () { build(false); });
+    $$("#controls input").forEach(function (i) {
+      if (i.name !== "zone") i.addEventListener("change", function () {
+        saveConfig();
+        build(false);
+      });
     });
 
+    applyConfig(loadConfig());
+    applyListOptions(loadListOptions());
     updateZoneHint();
+    saveConfig();
+    saveListOptions();
     build(false);
   }
 
