@@ -52,7 +52,6 @@ wrangler pages deploy . --project-name mochila-peru
 
 ## Pendientes razonables
 
-- Reemplazar imágenes `preview.png` y `og-image.png` por gráficas propias de la versión peruana.
 - Agregar fuentes/enlaces visibles por artículo si se quiere una versión más institucional.
 - Agregar service worker si se quiere instalación PWA offline después de la primera visita.
 - Revisar el contenido con alguien de gestión de riesgos o seguridad civil antes de publicarlo ampliamente.
