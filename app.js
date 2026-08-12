@@ -316,7 +316,7 @@
     var hazards = Object.keys(cfg.hazards).filter(function (k) { return cfg.hazards[k]; })
       .map(function (k) { return LABELS.hazards[k]; });
     $("#summary").innerHTML =
-      '<div class="summary__card">' +
+      '<div class="summary__bar">' +
       '<p><strong>' + (meta.people || 0) + ' personas</strong> - ' + cfg.days + ' días - ' + LABELS.zones[cfg.zone] + '</p>' +
       '<p>Agua objetivo: <strong>' + meta.waterL + ' L</strong> - comida: <strong>' + meta.personDays + ' persona-días</strong></p>' +
       '<p>Riesgos: ' + (hazards.join(", ") || "ninguno seleccionado") + '</p>' +
