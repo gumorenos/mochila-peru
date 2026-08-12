@@ -127,6 +127,31 @@
           <button type="button" class="btn btn--ghost" id="resetBtn">Limpiar checks</button>
         </div>
       </div>
+      <section class="list-tools" aria-label="Controles de lista">
+        <div class="list-tools__group">
+          <span>Vista</span>
+          <label><input type="radio" name="viewMode" value="category" checked><span>Categorías</span></label>
+          <label><input type="radio" name="viewMode" value="priority"><span>Prioridad</span></label>
+        </div>
+        <label class="select-control">
+          Prioridad
+          <select id="priorityFilter">
+            <option value="all">Todas</option>
+            <option value="crítico">Crítico</option>
+            <option value="primero">Primero</option>
+            <option value="normal">Sin marca</option>
+          </select>
+        </label>
+        <label class="select-control">
+          Orden
+          <select id="sortMode">
+            <option value="recommended">Recomendado</option>
+            <option value="priority">Prioridad</option>
+            <option value="expiry">Vencimiento</option>
+            <option value="pending">Pendientes primero</option>
+          </select>
+        </label>
+      </section>
       <section class="summary" id="summary" aria-live="polite"></section>
       <section class="kit" id="checklist" aria-label="Checklist de emergencia"></section>
     </section>

@@ -90,6 +90,19 @@
   var expiryState = {};
   var currentKey = "";
   var storageOk = true;
+  var currentPlan = null;
+
+  function priorityRank(priority) {
+    if (priority === "crítico") return 0;
+    if (priority === "primero") return 1;
+    return 2;
+  }
+
+  function priorityTitle(priority) {
+    if (priority === "crítico") return "Crítico";
+    if (priority === "primero") return "Primero";
+    return "Complementario";
+  }
 
   function readConfig() {
     var hazards = {};
@@ -186,7 +199,13 @@
     var cats = [];
 
     function cat(id, items) {
-      var real = items.filter(Boolean);
+      var real = items.filter(Boolean).map(function (entry, idx) {
+        entry.id = id + "-" + idx + "-" + slug(entry.name);
+        entry.catId = id;
+        entry.catTitle = LABELS.cats[id];
+        entry.order = cats.reduce(function (sum, c) { return sum + c.items.length; }, 0) + idx;
+        return entry;
+      });
       if (real.length) cats.push({ id: id, title: LABELS.cats[id], items: real });
     }
     function item(name, qty, why, priority) {
@@ -304,78 +323,148 @@
       '</div>';
   }
 
+  function listOptions() {
+    return {
+      view: ($("input[name=viewMode]:checked") || {}).value || "category",
+      priority: ($("#priorityFilter") || {}).value || "all",
+      sort: ($("#sortMode") || {}).value || "recommended"
+    };
+  }
+
+  function filterItems(items, opts) {
+    return items.filter(function (it) {
+      if (opts.priority === "all") return true;
+      if (opts.priority === "normal") return !it.priority;
+      return it.priority === opts.priority;
+    });
+  }
+
+  function sortItems(items, opts) {
+    var list = items.slice();
+    list.sort(function (a, b) {
+      if (opts.sort === "priority" || opts.view === "priority") {
+        var pr = priorityRank(a.priority) - priorityRank(b.priority);
+        if (pr) return pr;
+      }
+      if (opts.sort === "expiry") {
+        var ad = daysUntil(expiryState[a.id]);
+        var bd = daysUntil(expiryState[b.id]);
+        if (ad == null && bd != null) return 1;
+        if (ad != null && bd == null) return -1;
+        if (ad != null && bd != null && ad !== bd) return ad - bd;
+      }
+      if (opts.sort === "pending") {
+        var ac = checkedState[a.id] ? 1 : 0;
+        var bc = checkedState[b.id] ? 1 : 0;
+        if (ac !== bc) return ac - bc;
+      }
+      return a.order - b.order;
+    });
+    return list;
+  }
+
+  function flatItems(plan) {
+    return plan.cats.reduce(function (all, c) { return all.concat(c.items); }, []);
+  }
+
+  function renderItem(it) {
+    var id = it.id;
+    var li = el("li", "item");
+    if (checkedState[id]) li.classList.add("is-done");
+
+    var input = el("input");
+    input.type = "checkbox";
+    input.checked = !!checkedState[id];
+    input.id = "chk-" + id;
+    input.addEventListener("change", function () {
+      checkedState[id] = input.checked;
+      li.classList.toggle("is-done", input.checked);
+      saveChecks();
+      updateMeter();
+    });
+
+    var box = el("span", "item__box");
+    box.appendChild(input);
+    li.appendChild(box);
+
+    var label = el("label", "item__main");
+    label.setAttribute("for", input.id);
+    label.appendChild(el("span", "item__name", it.name));
+    if (it.qty) label.appendChild(el("span", "item__qty", it.qty));
+    if (it.priority === "crítico") label.appendChild(el("span", "tag tag--critical", "crítico"));
+    if (it.priority === "primero") label.appendChild(el("span", "tag tag--first", "primero"));
+    if (listOptions().view === "priority") label.appendChild(el("span", "tag tag--cat", it.catTitle));
+    li.appendChild(label);
+    li.appendChild(el("p", "item__why", it.why));
+
+    var expiry = el("div", "item__expiry");
+    var expiryLabel = el("label", null, "Vence / revisar");
+    var expiryInput = el("input");
+    expiryInput.type = "date";
+    expiryInput.id = "exp-" + id;
+    expiryInput.name = "expiry-" + id;
+    expiryInput.value = expiryState[id] || "";
+    expiryInput.setAttribute("aria-label", "Fecha de vencimiento o revisión para " + it.name);
+    var expiryStatus = el("span", "expiry-status", expiryText(expiryInput.value));
+    var statusClass = expiryClass(expiryInput.value);
+    if (statusClass) expiryStatus.classList.add(statusClass);
+    expiryInput.addEventListener("change", function () {
+      if (expiryInput.value) expiryState[id] = expiryInput.value;
+      else delete expiryState[id];
+      expiryStatus.textContent = expiryText(expiryInput.value);
+      expiryStatus.className = "expiry-status";
+      var cls = expiryClass(expiryInput.value);
+      if (cls) expiryStatus.classList.add(cls);
+      saveExpiry();
+      updateMeter();
+    });
+    expiryLabel.setAttribute("for", expiryInput.id);
+    expiryLabel.appendChild(expiryInput);
+    expiry.appendChild(expiryLabel);
+    expiry.appendChild(expiryStatus);
+    li.appendChild(expiry);
+    return li;
+  }
+
+  function renderCategory(c, items) {
+    var section = el("section", "cat");
+    var head = el("div", "cat__head");
+    head.appendChild(el("span", "cat__glyph", ICONS[c.id] || "PE"));
+    head.appendChild(el("h3", null, c.title));
+    head.appendChild(el("span", "cat__count"));
+    section.appendChild(head);
+
+    var list = el("ul", "cat__list");
+    items.forEach(function (it) { list.appendChild(renderItem(it)); });
+    section.appendChild(list);
+    return section;
+  }
+
   function renderChecklist(plan) {
     var root = $("#checklist");
+    var opts = listOptions();
     root.innerHTML = "";
-    plan.cats.forEach(function (c) {
-      var section = el("section", "cat");
-      var head = el("div", "cat__head");
-      head.appendChild(el("span", "cat__glyph", ICONS[c.id] || "PE"));
-      head.appendChild(el("h3", null, c.title));
-      head.appendChild(el("span", "cat__count"));
-      section.appendChild(head);
-
-      var list = el("ul", "cat__list");
-      c.items.forEach(function (it, idx) {
-        var id = c.id + "-" + idx + "-" + slug(it.name);
-        var li = el("li", "item");
-        if (checkedState[id]) li.classList.add("is-done");
-
-        var input = el("input");
-        input.type = "checkbox";
-        input.checked = !!checkedState[id];
-        input.id = "chk-" + id;
-        input.addEventListener("change", function () {
-          checkedState[id] = input.checked;
-          li.classList.toggle("is-done", input.checked);
-          saveChecks();
-          updateMeter();
-        });
-
-        var box = el("span", "item__box");
-        box.appendChild(input);
-        li.appendChild(box);
-
-        var label = el("label", "item__main");
-        label.setAttribute("for", input.id);
-        label.appendChild(el("span", "item__name", it.name));
-        if (it.qty) label.appendChild(el("span", "item__qty", it.qty));
-        if (it.priority === "crítico") label.appendChild(el("span", "tag tag--critical", "crítico"));
-        if (it.priority === "primero") label.appendChild(el("span", "tag tag--first", "primero"));
-        li.appendChild(label);
-        li.appendChild(el("p", "item__why", it.why));
-
-        var expiry = el("div", "item__expiry");
-        var expiryLabel = el("label", null, "Vence / revisar");
-        var expiryInput = el("input");
-        expiryInput.type = "date";
-        expiryInput.id = "exp-" + id;
-        expiryInput.name = "expiry-" + id;
-        expiryInput.value = expiryState[id] || "";
-        expiryInput.setAttribute("aria-label", "Fecha de vencimiento o revisión para " + it.name);
-        var expiryStatus = el("span", "expiry-status", expiryText(expiryInput.value));
-        var statusClass = expiryClass(expiryInput.value);
-        if (statusClass) expiryStatus.classList.add(statusClass);
-        expiryInput.addEventListener("change", function () {
-          if (expiryInput.value) expiryState[id] = expiryInput.value;
-          else delete expiryState[id];
-          expiryStatus.textContent = expiryText(expiryInput.value);
-          expiryStatus.className = "expiry-status";
-          var cls = expiryClass(expiryInput.value);
-          if (cls) expiryStatus.classList.add(cls);
-          saveExpiry();
-          updateMeter();
-        });
-        expiryLabel.setAttribute("for", expiryInput.id);
-        expiryLabel.appendChild(expiryInput);
-        expiry.appendChild(expiryLabel);
-        expiry.appendChild(expiryStatus);
-        li.appendChild(expiry);
-        list.appendChild(li);
+    if (opts.view === "priority") {
+      root.classList.add("kit--priority");
+      ["crítico", "primero", ""].forEach(function (priority) {
+        var items = sortItems(filterItems(flatItems(plan), opts), opts)
+          .filter(function (it) { return (it.priority || "") === priority; });
+        if (!items.length) return;
+        root.appendChild(renderCategory({
+          id: priority === "crítico" ? "seguridad" : priority === "primero" ? "documentos" : "zona",
+          title: priorityTitle(priority)
+        }, items));
       });
-      section.appendChild(list);
-      root.appendChild(section);
-    });
+    } else {
+      root.classList.remove("kit--priority");
+      plan.cats.forEach(function (c) {
+        var items = sortItems(filterItems(c.items, opts), opts);
+        if (items.length) root.appendChild(renderCategory(c, items));
+      });
+    }
+    if (!root.children.length) {
+      root.appendChild(el("p", "empty", "No hay artículos para ese filtro."));
+    }
     updateMeter();
   }
 
@@ -453,8 +542,13 @@
       loadChecks(key);
     }
     var plan = buildPlan(cfg);
+    currentPlan = plan;
     renderSummary(cfg, plan.meta);
     renderChecklist(plan);
+  }
+
+  function refreshListOnly() {
+    if (currentPlan) renderChecklist(currentPlan);
   }
 
   function init() {
@@ -478,6 +572,11 @@
       $$(".item").forEach(function (li) { li.classList.remove("is-done"); });
       updateMeter();
     });
+    $$("input[name=viewMode]").forEach(function (r) {
+      r.addEventListener("change", refreshListOnly);
+    });
+    $("#priorityFilter").addEventListener("change", refreshListOnly);
+    $("#sortMode").addEventListener("change", refreshListOnly);
     $$("input[name=zone]").forEach(function (r) {
       r.addEventListener("change", function () {
         updateZoneHint();

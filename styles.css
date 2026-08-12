@@ -265,10 +265,88 @@ button, input { font: inherit; }
   color: #173c54;
 }
 
+.list-tools {
+  display: flex;
+  align-items: end;
+  gap: 10px;
+  flex-wrap: wrap;
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 11px;
+  box-shadow: var(--shadow);
+}
+.list-tools__group {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  flex-wrap: wrap;
+}
+.list-tools__group > span,
+.select-control {
+  color: var(--muted);
+  font-size: .76rem;
+  font-weight: 850;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+}
+.list-tools__group label {
+  position: relative;
+  display: block;
+}
+.list-tools__group input {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  margin: 0;
+  cursor: pointer;
+}
+.list-tools__group label span {
+  display: block;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: #fff;
+  padding: 7px 9px;
+  color: var(--ink);
+  font-size: .84rem;
+  font-weight: 750;
+  text-transform: none;
+  letter-spacing: 0;
+}
+.list-tools__group input:checked + span {
+  border-color: var(--blue);
+  background: var(--blue-soft);
+  color: #123d5a;
+}
+.select-control {
+  display: grid;
+  gap: 4px;
+}
+.select-control select {
+  min-width: 150px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: #fff;
+  color: var(--ink);
+  padding: 7px 9px;
+  font: inherit;
+  font-size: .9rem;
+}
+
 .kit {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 14px;
+}
+.kit--priority {
+  grid-template-columns: 1fr;
+}
+.empty {
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 14px;
+  color: var(--muted);
 }
 .cat {
   background: var(--paper);
@@ -356,6 +434,7 @@ button, input { font: inherit; }
 }
 .tag--critical { color: #7f1515; background: var(--red-soft); border: 1px solid #f3b5b5; }
 .tag--first { color: #6b430c; background: var(--amber-soft); border: 1px solid #efd28d; }
+.tag--cat { color: #173c54; background: var(--blue-soft); border: 1px solid #bdd7e9; }
 .item__why {
   grid-column: 2;
   color: var(--muted);
