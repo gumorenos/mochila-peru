@@ -36,6 +36,12 @@ La app no necesita build.
 
 Luego puedes agregar un dominio tipo `mochila.gumorenos.space` desde **Custom domains**.
 
+Para publicar manualmente desde una maquina con `wrangler` autenticado:
+
+```bash
+wrangler pages deploy . --project-name mochila-peru
+```
+
 ## Alternativas
 
 - GitHub Pages: servir desde `main` / root.
