@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 Disallow: /assets/
-Sitemap: https://gumorenos.github.io/mochila-peru/sitemap.xml
+Sitemap: https://mochila-peru.pages.dev/sitemap.xml

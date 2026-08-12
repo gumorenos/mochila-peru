@@ -1,10 +1,8 @@
 # Mochila Perú
 
-Checklist familiar de emergencia adaptado a la realidad peruana. Calcula una mochila de emergencia y caja de reserva según zona, riesgos, composición del hogar y días de autonomía.
+Checklist familiar de emergencia para hogares en Perú. Calcula una mochila de emergencia y caja de reserva según zona, riesgos, composición del hogar y días de autonomía.
 
-Este proyecto es un fork MIT de [`readykit`](https://github.com/Sreenivas-Sadhu-Prabhakara/readykit).
-
-## Qué cambia frente al original
+## Qué incluye
 
 - Presets peruanos por zona: Lima/costa, costa norte, sierra, selva y sur volcánico.
 - Riesgos locales: sismo, tsunami, huaico/deslizamiento, lluvias/inundación, helada/friaje, ceniza volcánica, incendio y corte de agua/luz.
@@ -44,7 +42,7 @@ Para publicar manualmente desde una máquina con `wrangler` autenticado:
 wrangler pages deploy . --project-name mochila-peru
 ```
 
-## Alternativas
+## Alternativas de despliegue
 
 - GitHub Pages: servir desde `main` / root.
 - Netlify o Vercel: proyecto estático sin build.
@@ -58,4 +56,4 @@ wrangler pages deploy . --project-name mochila-peru
 
 ## Licencia
 
-MIT. Mantiene crédito al proyecto original según la licencia incluida.
+MIT. Este proyecto deriva de [`readykit`](https://github.com/Sreenivas-Sadhu-Prabhakara/readykit) y mantiene la licencia incluida.
