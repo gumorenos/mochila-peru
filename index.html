@@ -4,19 +4,19 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src 'none'; img-src 'self' data:; base-uri 'none'; form-action 'none'; object-src 'none'">
-  <title>Mochila Peru - checklist familiar de emergencia</title>
-  <meta name="description" content="Calcula una mochila de emergencia y caja de reserva para hogares en Peru segun zona, riesgos, familia y dias de autonomia. Privado, imprimible y offline.">
+  <title>Mochila Perú - checklist familiar de emergencia</title>
+  <meta name="description" content="Calcula una mochila de emergencia y caja de reserva para hogares en Perú según zona, riesgos, familia y días de autonomía. Privado, imprimible y offline.">
   <meta name="color-scheme" content="light">
   <link rel="canonical" href="https://gumorenos.github.io/mochila-peru/">
   <meta name="robots" content="index, follow, max-image-preview:large">
   <meta name="author" content="Gumorenos, fork de readykit">
-  <meta name="keywords" content="mochila de emergencia Peru, kit de emergencia, INDECI, sismo Peru, huaico, tsunami, friaje, ceniza volcanica">
+  <meta name="keywords" content="mochila de emergencia Perú, kit de emergencia, INDECI, sismo Perú, huaico, tsunami, friaje, ceniza volcánica">
   <meta name="theme-color" content="#f7f4ee">
 
   <meta property="og:type" content="website">
-  <meta property="og:site_name" content="Mochila Peru">
-  <meta property="og:title" content="Mochila Peru - checklist familiar de emergencia">
-  <meta property="og:description" content="Checklist peruano para preparar mochila de emergencia y caja de reserva segun zona, riesgos y hogar.">
+  <meta property="og:site_name" content="Mochila Perú">
+  <meta property="og:title" content="Mochila Perú - checklist familiar de emergencia">
+  <meta property="og:description" content="Checklist peruano para preparar mochila de emergencia y caja de reserva según zona, riesgos y hogar.">
   <meta property="og:url" content="https://gumorenos.github.io/mochila-peru/">
   <meta property="og:locale" content="es_PE">
   <meta property="og:image" content="https://gumorenos.github.io/mochila-peru/og-image.png">
@@ -30,8 +30,8 @@
   {
     "@context": "https://schema.org",
     "@type": "WebApplication",
-    "name": "Mochila Peru",
-    "description": "Checklist familiar de emergencia para hogares en Peru. Calcula cantidades segun familia, zona, riesgos y dias de autonomia.",
+    "name": "Mochila Perú",
+    "description": "Checklist familiar de emergencia para hogares en Perú. Calcula cantidades según familia, zona, riesgos y días de autonomía.",
     "url": "https://gumorenos.github.io/mochila-peru/",
     "applicationCategory": "UtilitiesApplication",
     "operatingSystem": "Any",
@@ -46,8 +46,8 @@
 
   <header class="topbar">
     <div>
-      <p class="eyebrow">Checklist offline para hogares en Peru</p>
-      <h1>Mochila Peru</h1>
+      <p class="eyebrow">Checklist offline para hogares en Perú</p>
+      <h1>Mochila Perú</h1>
     </div>
     <p class="topbar__note">Sin cuentas, sin tracking, sin enviar datos.</p>
   </header>
@@ -61,9 +61,9 @@
           <label class="seg"><input type="radio" name="zone" value="costa-norte"><span>Costa norte</span></label>
           <label class="seg"><input type="radio" name="zone" value="sierra"><span>Sierra</span></label>
           <label class="seg"><input type="radio" name="zone" value="selva"><span>Selva</span></label>
-          <label class="seg"><input type="radio" name="zone" value="sur-volcanico"><span>Sur volcanico</span></label>
+          <label class="seg"><input type="radio" name="zone" value="sur-volcanico"><span>Sur volcánico</span></label>
         </div>
-        <p class="hint" id="zoneHint">Costa urbana: prioriza sismo, cortes de agua/luz y rutas de evacuacion.</p>
+        <p class="hint" id="zoneHint">Costa urbana: prioriza sismo, cortes de agua/luz y rutas de evacuación.</p>
       </section>
 
       <section class="panel">
@@ -72,9 +72,9 @@
           <label class="chip"><input type="checkbox" name="hazard" value="sismo" checked><span>Sismo</span></label>
           <label class="chip"><input type="checkbox" name="hazard" value="tsunami"><span>Tsunami</span></label>
           <label class="chip"><input type="checkbox" name="hazard" value="huaico"><span>Huaico / deslizamiento</span></label>
-          <label class="chip"><input type="checkbox" name="hazard" value="lluvias"><span>Lluvias / inundacion</span></label>
+          <label class="chip"><input type="checkbox" name="hazard" value="lluvias"><span>Lluvias / inundación</span></label>
           <label class="chip"><input type="checkbox" name="hazard" value="friaje"><span>Helada / friaje</span></label>
-          <label class="chip"><input type="checkbox" name="hazard" value="ceniza"><span>Ceniza volcanica</span></label>
+          <label class="chip"><input type="checkbox" name="hazard" value="ceniza"><span>Ceniza volcánica</span></label>
           <label class="chip"><input type="checkbox" name="hazard" value="incendio"><span>Incendio</span></label>
           <label class="chip"><input type="checkbox" name="hazard" value="corte" checked><span>Corte de agua/luz</span></label>
         </div>
@@ -84,8 +84,8 @@
         <h2>3. Hogar</h2>
         <div class="counts">
           <label>Adultos<input type="number" id="adults" min="0" max="30" value="2" inputmode="numeric"></label>
-          <label>Ninos 1-12<input type="number" id="children" min="0" max="30" value="1" inputmode="numeric"></label>
-          <label>Bebes<input type="number" id="infants" min="0" max="10" value="0" inputmode="numeric"></label>
+          <label>Niños 1-12<input type="number" id="children" min="0" max="30" value="1" inputmode="numeric"></label>
+          <label>Bebés<input type="number" id="infants" min="0" max="10" value="0" inputmode="numeric"></label>
           <label>Adultos mayores<input type="number" id="elderly" min="0" max="20" value="0" inputmode="numeric"></label>
           <label>Mascotas<input type="number" id="pets" min="0" max="20" value="0" inputmode="numeric"></label>
         </div>
@@ -97,13 +97,13 @@
       </section>
 
       <section class="panel">
-        <h2>4. Autonomia</h2>
-        <div class="segmented segmented--days" role="radiogroup" aria-label="Dias de autonomia">
+        <h2>4. Autonomía</h2>
+        <div class="segmented segmented--days" role="radiogroup" aria-label="Días de autonomía">
           <label class="seg"><input type="radio" name="days" value="3" checked><span>72 horas</span></label>
-          <label class="seg"><input type="radio" name="days" value="7"><span>7 dias</span></label>
-          <label class="seg"><input type="radio" name="days" value="14"><span>14 dias</span></label>
+          <label class="seg"><input type="radio" name="days" value="7"><span>7 días</span></label>
+          <label class="seg"><input type="radio" name="days" value="14"><span>14 días</span></label>
         </div>
-        <p class="hint">72 horas es el minimo practico. Sube a 7 o 14 dias si podrias quedar aislado.</p>
+        <p class="hint">72 horas es el mínimo práctico. Sube a 7 o 14 días si podrías quedar aislado.</p>
       </section>
 
       <div class="controls__action">
@@ -118,7 +118,8 @@
           <p class="eyebrow" id="statusHeading">Avance</p>
           <div class="meter">
             <div class="meter__track"><div class="meter__fill" id="meterFill"></div></div>
-            <p><strong id="meterPct">0%</strong> listo - <span id="meterCount">0 de 0</span> items</p>
+            <p><strong id="meterPct">0%</strong> listo - <span id="meterCount">0 de 0</span> artículos</p>
+            <p class="expiry-summary" id="expirySummary">Sin fechas de vencimiento registradas.</p>
           </div>
         </div>
         <div class="status__actions">
@@ -133,7 +134,7 @@
 
   <footer class="foot">
     <p><strong>Uso orientativo.</strong> Contrasta siempre con indicaciones oficiales de INDECI, COEN, SENAMHI, IGP, CENEPRED, Minsa, Bomberos y tu municipalidad.</p>
-    <p>Fork MIT de readykit. Esta version no usa red ni cuentas.</p>
+    <p>Fork MIT de readykit. Esta versión no usa red ni cuentas.</p>
   </footer>
 
   <script src="app.js" defer></script>

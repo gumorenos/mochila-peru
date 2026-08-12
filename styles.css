@@ -246,6 +246,13 @@ button, input { font: inherit; }
 }
 .meter p { margin-top: 6px; color: var(--muted); font-size: .9rem; }
 .meter strong { color: var(--green); font-family: var(--mono); }
+.expiry-summary {
+  color: var(--muted);
+}
+.expiry-summary.is-expired { color: var(--red); font-weight: 800; }
+.expiry-summary.is-soon { color: var(--amber); font-weight: 800; }
+.expiry-summary.is-watch { color: var(--blue); }
+.expiry-summary.is-ok { color: var(--green); }
 .status__actions { display: flex; gap: 8px; flex-wrap: wrap; }
 
 .summary__card {
@@ -354,6 +361,45 @@ button, input { font: inherit; }
   color: var(--muted);
   font-size: .86rem;
 }
+.item__expiry {
+  grid-column: 2;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 4px;
+}
+.item__expiry label {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--muted);
+  font-size: .78rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+}
+.item__expiry input {
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  padding: 4px 6px;
+  color: var(--ink);
+  background: #fff;
+  font-size: .82rem;
+}
+.expiry-status {
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 2px 8px;
+  color: var(--muted);
+  background: #fff;
+  font-size: .78rem;
+  font-weight: 800;
+}
+.expiry-status.is-expired { color: var(--red); background: var(--red-soft); border-color: #f3b5b5; }
+.expiry-status.is-soon { color: var(--amber); background: var(--amber-soft); border-color: #efd28d; }
+.expiry-status.is-watch { color: var(--blue); background: var(--blue-soft); border-color: #bdd7e9; }
+.expiry-status.is-ok { color: var(--green); background: var(--green-soft); border-color: #b9dfc8; }
 
 .foot {
   border-top: 1px solid var(--line);

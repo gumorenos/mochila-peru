@@ -1,7 +1,7 @@
 {
-  "name": "Mochila Peru",
-  "short_name": "Mochila Peru",
-  "description": "Checklist familiar de emergencia para hogares en Peru. Privado, imprimible y offline.",
+  "name": "Mochila Perú",
+  "short_name": "Mochila Perú",
+  "description": "Checklist familiar de emergencia para hogares en Perú. Privado, imprimible y offline.",
   "start_url": ".",
   "scope": ".",
   "display": "standalone",
