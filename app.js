@@ -241,6 +241,88 @@
     }
   }
 
+  function base64UrlEncode(text) {
+    return btoa(unescape(encodeURIComponent(text)))
+      .replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/g, "");
+  }
+
+  function base64UrlDecode(text) {
+    var normalized = text.replace(/-/g, "+").replace(/_/g, "/");
+    while (normalized.length % 4) normalized += "=";
+    return decodeURIComponent(escape(atob(normalized)));
+  }
+
+  function sharedPayload() {
+    var items = currentPlan ? flatItems(currentPlan) : [];
+    var indexById = {};
+    items.forEach(function (it, idx) { indexById[it.id] = idx; });
+    var checked = Object.keys(checkedState).filter(function (id) {
+      return checkedState[id] && indexById[id] != null;
+    }).map(function (id) { return indexById[id]; });
+    var expiry = Object.keys(expiryState).filter(function (id) {
+      return expiryState[id] && indexById[id] != null;
+    }).map(function (id) { return [indexById[id], expiryState[id]]; });
+    return {
+      v: 1,
+      cfg: readConfig(),
+      opts: listOptions(),
+      checked: checked,
+      expiry: expiry
+    };
+  }
+
+  function shareUrl() {
+    var url = new URL(window.location.href);
+    url.search = "";
+    url.hash = "";
+    url.searchParams.set("lista", base64UrlEncode(JSON.stringify(sharedPayload())));
+    return url.toString();
+  }
+
+  function readSharedPayload() {
+    var raw = new URLSearchParams(window.location.search).get("lista");
+    if (!raw) return null;
+    try {
+      var payload = JSON.parse(base64UrlDecode(raw));
+      return payload && payload.v === 1 ? payload : null;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  function applySharedState(payload) {
+    if (!payload || !currentPlan) return;
+    var items = flatItems(currentPlan);
+    checkedState = {};
+    expiryState = {};
+    (payload.checked || []).forEach(function (idx) {
+      if (items[idx]) checkedState[items[idx].id] = true;
+    });
+    (payload.expiry || []).forEach(function (pair) {
+      if (items[pair[0]] && pair[1]) expiryState[items[pair[0]].id] = pair[1];
+    });
+    saveChecks();
+    saveExpiry();
+    renderChecklist(currentPlan);
+  }
+
+  function writeClipboard(text, button, doneText) {
+    var original = button.textContent;
+    function done() {
+      button.textContent = doneText;
+      setTimeout(function () { button.textContent = original; }, 1600);
+    }
+    if (navigator.clipboard && window.isSecureContext) {
+      navigator.clipboard.writeText(text).then(done, function () {
+        window.prompt("Copia este texto:", text);
+        done();
+      });
+      return;
+    }
+    window.prompt("Copia este texto:", text);
+    done();
+  }
+
   function daysUntil(dateText) {
     if (!dateText) return null;
     var parts = dateText.split("-");
@@ -400,6 +482,38 @@
       '<p>Agua objetivo: <strong>' + meta.waterL + ' L</strong> - comida: <strong>' + meta.personDays + ' persona-días</strong></p>' +
       '<p>Riesgos: ' + (hazards.join(", ") || "ninguno seleccionado") + '</p>' +
       '</div>';
+  }
+
+  function checkedCount(items) {
+    return items.filter(function (it) { return checkedState[it.id]; }).length;
+  }
+
+  function summaryText() {
+    var cfg = readConfig();
+    var items = currentPlan ? flatItems(currentPlan) : [];
+    var done = checkedCount(items);
+    var hazards = Object.keys(cfg.hazards).filter(function (k) { return cfg.hazards[k]; })
+      .map(function (k) { return LABELS.hazards[k]; });
+    var pending = items.filter(function (it) { return !checkedState[it.id]; })
+      .sort(function (a, b) {
+        var pr = priorityRank(a.priority) - priorityRank(b.priority);
+        return pr || a.order - b.order;
+      })
+      .slice(0, 14)
+      .map(function (it) {
+        return "- " + it.name + (it.qty ? " (" + it.qty + ")" : "") + " - " + it.catTitle;
+      });
+    return [
+      "Mochila Perú",
+      LABELS.zones[cfg.zone] + " - " + (currentPlan ? currentPlan.meta.people : 0) + " personas - " + cfg.days + " días",
+      "Riesgos: " + (hazards.join(", ") || "ninguno seleccionado"),
+      "Avance: " + done + " de " + items.length + " artículos",
+      "",
+      "Pendientes prioritarios:",
+      pending.length ? pending.join("\n") : "- Todo marcado como listo",
+      "",
+      "Lista editable: " + shareUrl()
+    ].join("\n");
   }
 
   function listOptions() {
@@ -629,10 +743,18 @@
       storageOk = false;
     }
 
+    var shared = readSharedPayload();
+
     $("#controls").addEventListener("submit", function (e) {
       e.preventDefault();
       build(true);
       $("#lista").scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+    $("#shareBtn").addEventListener("click", function () {
+      writeClipboard(shareUrl(), $("#shareBtn"), "Enlace copiado");
+    });
+    $("#summaryBtn").addEventListener("click", function () {
+      writeClipboard(summaryText(), $("#summaryBtn"), "Resumen copiado");
     });
     $("#printBtn").addEventListener("click", function () { window.print(); });
     $("#resetBtn").addEventListener("click", function () {
@@ -662,12 +784,13 @@
       });
     });
 
-    applyConfig(loadConfig());
-    applyListOptions(loadListOptions());
+    applyConfig(shared ? shared.cfg : loadConfig());
+    applyListOptions(shared ? shared.opts : loadListOptions());
     updateZoneHint();
     saveConfig();
     saveListOptions();
     build(false);
+    applySharedState(shared);
   }
 
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", init);

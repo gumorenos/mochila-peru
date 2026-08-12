@@ -11,6 +11,7 @@ Checklist familiar de emergencia para hogares en Perú. Calcula una mochila de e
 - Sigue siendo 100% estática, privada y offline: no hay backend, cuentas, analytics ni llamadas de red.
 - Seguimiento opcional solo para artículos que sí se rotan, vencen, se prueban o se recargan.
 - Vista por prioridad, filtros por clasificación y orden por recomendado, prioridad, vencimiento o pendientes.
+- Enlace compartible con la lista actual, resumen copiable para WhatsApp y salida PDF desde la impresión del navegador.
 
 ## Uso local
 
@@ -20,7 +21,7 @@ Abre `index.html` directamente en el navegador, o sirve la carpeta con cualquier
 npx serve .
 ```
 
-La configuración del hogar, riesgos, vista de lista, checks y fechas de rotación se guardan en `localStorage`, en el navegador del usuario.
+La configuración del hogar, riesgos, vista de lista, checks y fechas de rotación se guardan en `localStorage`, en el navegador del usuario. El botón de compartir codifica una copia de esa lista en la URL; no usa servidor ni base de datos.
 
 ## Despliegue recomendado: Cloudflare Pages
 
