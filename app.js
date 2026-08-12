@@ -323,6 +323,12 @@
     done();
   }
 
+  function escapeHtml(text) {
+    return String(text == null ? "" : text).replace(/[&<>"']/g, function (ch) {
+      return ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[ch];
+    });
+  }
+
   function daysUntil(dateText) {
     if (!dateText) return null;
     var parts = dateText.split("-");
@@ -514,6 +520,76 @@
       "",
       "Lista editable: " + shareUrl()
     ].join("\n");
+  }
+
+  function printableHtml() {
+    var cfg = readConfig();
+    var plan = currentPlan || buildPlan(cfg);
+    var items = flatItems(plan);
+    var done = checkedCount(items);
+    var hazards = Object.keys(cfg.hazards).filter(function (k) { return cfg.hazards[k]; })
+      .map(function (k) { return LABELS.hazards[k]; });
+    var rows = plan.cats.map(function (cat) {
+      var list = cat.items.map(function (it) {
+        var ready = checkedState[it.id] ? "Listo" : "Pendiente";
+        var expiry = it.dateLabel ? (it.dateLabel + ": " + (expiryState[it.id] || "sin fecha")) : "";
+        return '<li>' +
+          '<span class="ready">' + ready + '</span>' +
+          '<strong>' + escapeHtml(it.name) + '</strong>' +
+          (it.qty ? '<span class="qty">' + escapeHtml(it.qty) + '</span>' : '') +
+          (it.priority ? '<span class="tag">' + escapeHtml(priorityTitle(it.priority)) + '</span>' : '') +
+          (expiry ? '<span class="expiry">' + escapeHtml(expiry) + '</span>' : '') +
+          '<p>' + escapeHtml(it.why) + '</p>' +
+          '</li>';
+      }).join("");
+      return '<section class="cat"><h2>' + escapeHtml(cat.title) + '</h2><ul>' + list + '</ul></section>';
+    }).join("");
+    return '<!doctype html><html lang="es-PE"><head><meta charset="utf-8">' +
+      '<meta name="viewport" content="width=device-width,initial-scale=1">' +
+      '<title>Mochila Peru - lista PDF</title>' +
+      '<style>' +
+      'body{font-family:system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;color:#111;margin:0;background:#f4f2ed;line-height:1.45}' +
+      '.page{max-width:860px;margin:0 auto;padding:28px 22px 44px;background:#fff;min-height:100vh}' +
+      '.actions{position:sticky;top:0;background:#fff;border-bottom:1px solid #ccc;padding:12px 0;margin-bottom:20px;display:flex;gap:10px;flex-wrap:wrap}' +
+      'button{border:1px solid #999;background:#111;color:#fff;border-radius:6px;padding:10px 14px;font:inherit;font-weight:800;cursor:pointer}' +
+      'h1{font-size:32px;line-height:1;margin:0 0 8px} h2{font-size:16px;text-transform:uppercase;letter-spacing:.06em;border-bottom:1px solid #bbb;padding-bottom:6px;margin:24px 0 0}' +
+      '.meta{display:flex;gap:8px 18px;flex-wrap:wrap;border-left:4px solid #1f5f8b;padding-left:12px;color:#333;margin:16px 0 20px}' +
+      'ul{list-style:none;padding:0;margin:0} li{break-inside:avoid;border-bottom:1px solid #ddd;padding:10px 0;display:grid;grid-template-columns:auto 1fr;gap:4px 10px}' +
+      '.ready{grid-row:1/4;border:1px solid #999;border-radius:4px;padding:2px 6px;font-size:12px;font-weight:800;align-self:start;color:#333}' +
+      '.qty,.tag,.expiry{display:inline-block;margin-left:6px;font-size:12px;border:1px solid #bbb;border-radius:999px;padding:1px 7px;color:#333;font-weight:700}' +
+      'p{grid-column:2;margin:0;color:#444;font-size:13px}.note{margin-top:24px;color:#444;font-size:12px}' +
+      '@media print{body{background:#fff}.page{max-width:none;padding:0}.actions{display:none}.cat{break-inside:avoid}a{color:#000}}' +
+      '</style></head><body><main class="page">' +
+      '<div class="actions"><button onclick="window.print()">Guardar PDF</button><button onclick="window.close()">Cerrar</button></div>' +
+      '<h1>Mochila Peru</h1>' +
+      '<div class="meta">' +
+      '<span>' + escapeHtml(LABELS.zones[cfg.zone]) + '</span>' +
+      '<span>' + escapeHtml(plan.meta.people) + ' personas</span>' +
+      '<span>' + escapeHtml(cfg.days) + ' dias</span>' +
+      '<span>' + done + ' de ' + items.length + ' listos</span>' +
+      '<span>Agua: ' + escapeHtml(plan.meta.waterL) + ' L</span>' +
+      '</div>' +
+      '<p><strong>Riesgos:</strong> ' + escapeHtml(hazards.join(", ") || "ninguno seleccionado") + '</p>' +
+      rows +
+      '<p class="note">Uso orientativo. Contrasta siempre con indicaciones oficiales de INDECI, COEN, SENAMHI, IGP, CENEPRED, Minsa, Bomberos y tu municipalidad.</p>' +
+      '<script>setTimeout(function(){ window.print(); }, 350);<\/script>' +
+      '</main></body></html>';
+  }
+
+  function openPdfView(button) {
+    var original = button.textContent;
+    var win = window.open("", "_blank");
+    if (!win) {
+      button.textContent = "Permite ventanas";
+      setTimeout(function () { button.textContent = original; }, 1800);
+      window.print();
+      return;
+    }
+    win.document.open();
+    win.document.write(printableHtml());
+    win.document.close();
+    button.textContent = "PDF abierto";
+    setTimeout(function () { button.textContent = original; }, 1600);
   }
 
   function listOptions() {
@@ -756,7 +832,7 @@
     $("#summaryBtn").addEventListener("click", function () {
       writeClipboard(summaryText(), $("#summaryBtn"), "Resumen copiado");
     });
-    $("#printBtn").addEventListener("click", function () { window.print(); });
+    $("#printBtn").addEventListener("click", function () { openPdfView($("#printBtn")); });
     $("#resetBtn").addEventListener("click", function () {
       checkedState = {};
       saveChecks();
