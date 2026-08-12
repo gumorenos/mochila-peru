@@ -101,6 +101,12 @@
   var currentPlan = null;
   var CONFIG_KEY = "mochila-peru:config";
   var OPTIONS_KEY = "mochila-peru:list-options";
+  var ZONE_ORDER = ["lima-costa", "costa-norte", "sierra", "selva", "sur-volcanico"];
+  var HAZARD_ORDER = ["sismo", "tsunami", "huaico", "lluvias", "friaje", "ceniza", "incendio", "corte"];
+  var DAYS_ORDER = [3, 7, 14];
+  var VIEW_ORDER = ["category", "priority"];
+  var PRIORITY_ORDER = ["all", "crítico", "primero", "normal"];
+  var SORT_ORDER = ["recommended", "priority", "expiry", "pending"];
 
   function priorityRank(priority) {
     if (priority === "crítico") return 0;
@@ -252,6 +258,57 @@
     return decodeURIComponent(escape(atob(normalized)));
   }
 
+  function to36(n) {
+    return Math.max(0, Number(n) || 0).toString(36);
+  }
+
+  function from36(text) {
+    var n = parseInt(text || "0", 36);
+    return isNaN(n) ? 0 : n;
+  }
+
+  function indexOrZero(list, value) {
+    var idx = list.indexOf(value);
+    return idx < 0 ? 0 : idx;
+  }
+
+  function indexesToBits(indexes) {
+    var bits = 0n;
+    indexes.forEach(function (idx) {
+      bits |= 1n << BigInt(idx);
+    });
+    return bits.toString(36);
+  }
+
+  function bitsToIndexes(text) {
+    var value = 0n;
+    (text || "0").toLowerCase().split("").forEach(function (ch) {
+      value = value * 36n + BigInt(parseInt(ch, 36) || 0);
+    });
+    var out = [];
+    var idx = 0;
+    while (value > 0n) {
+      if (value & 1n) out.push(idx);
+      value >>= 1n;
+      idx += 1;
+    }
+    return out;
+  }
+
+  function dateToCode(dateText) {
+    var parts = (dateText || "").split("-");
+    if (parts.length !== 3) return "";
+    var base = Date.UTC(2026, 0, 1);
+    var date = Date.UTC(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
+    return to36(Math.round((date - base) / 86400000));
+  }
+
+  function codeToDate(code) {
+    var base = Date.UTC(2026, 0, 1);
+    var date = new Date(base + from36(code) * 86400000);
+    return date.toISOString().slice(0, 10);
+  }
+
   function sharedPayload() {
     var items = currentPlan ? flatItems(currentPlan) : [];
     var indexById = {};
@@ -274,12 +331,13 @@
   function shareUrl() {
     var url = new URL(window.location.href);
     url.search = "";
-    url.hash = "";
-    url.searchParams.set("lista", base64UrlEncode(JSON.stringify(sharedPayload())));
+    url.hash = "l=" + compactShareCode();
     return url.toString();
   }
 
   function readSharedPayload() {
+    var hash = window.location.hash || "";
+    if (hash.indexOf("#l=") === 0) return readCompactShareCode(hash.slice(3));
     var raw = new URLSearchParams(window.location.search).get("lista");
     if (!raw) return null;
     try {
@@ -288,6 +346,73 @@
     } catch (e) {
       return null;
     }
+  }
+
+  function compactShareCode() {
+    var payload = sharedPayload();
+    var cfg = payload.cfg;
+    var opts = payload.opts;
+    var hazards = HAZARD_ORDER.reduce(function (mask, key, idx) {
+      return cfg.hazards[key] ? mask + Math.pow(2, idx) : mask;
+    }, 0);
+    var flags = (cfg.meds ? 1 : 0) + (cfg.mobility ? 2 : 0) + (cfg.apartment ? 4 : 0);
+    var head = [
+      2,
+      indexOrZero(ZONE_ORDER, cfg.zone),
+      hazards,
+      cfg.adults,
+      cfg.children,
+      cfg.infants,
+      cfg.elderly,
+      cfg.pets,
+      flags,
+      indexOrZero(DAYS_ORDER, cfg.days),
+      indexOrZero(VIEW_ORDER, opts.view),
+      indexOrZero(PRIORITY_ORDER, opts.priority),
+      indexOrZero(SORT_ORDER, opts.sort)
+    ].map(to36).join(".");
+    var expiry = payload.expiry.map(function (pair) {
+      return to36(pair[0]) + "-" + dateToCode(pair[1]);
+    }).filter(function (part) { return part.slice(-1) !== "-"; }).join("_");
+    return [head, indexesToBits(payload.checked), expiry || "-"].join(".");
+  }
+
+  function readCompactShareCode(code) {
+    var parts = (code || "").split(".");
+    if (parts.length < 15 || from36(parts[0]) !== 2) return null;
+    var flags = from36(parts[8]);
+    var hazardsMask = from36(parts[2]);
+    var hazards = {};
+    HAZARD_ORDER.forEach(function (key, idx) {
+      hazards[key] = !!(hazardsMask & Math.pow(2, idx));
+    });
+    var expiry = parts[14] === "-" ? [] : (parts[14] || "").split("_").map(function (entry) {
+      var pair = entry.split("-");
+      return [from36(pair[0]), codeToDate(pair[1])];
+    });
+    return {
+      v: 1,
+      cfg: {
+        zone: ZONE_ORDER[from36(parts[1])] || "lima-costa",
+        hazards: hazards,
+        adults: from36(parts[3]),
+        children: from36(parts[4]),
+        infants: from36(parts[5]),
+        elderly: from36(parts[6]),
+        pets: from36(parts[7]),
+        meds: !!(flags & 1),
+        mobility: !!(flags & 2),
+        apartment: !!(flags & 4),
+        days: DAYS_ORDER[from36(parts[9])] || 3
+      },
+      opts: {
+        view: VIEW_ORDER[from36(parts[10])] || "category",
+        priority: PRIORITY_ORDER[from36(parts[11])] || "all",
+        sort: SORT_ORDER[from36(parts[12])] || "recommended"
+      },
+      checked: bitsToIndexes(parts[13]),
+      expiry: expiry
+    };
   }
 
   function applySharedState(payload) {
@@ -534,11 +659,13 @@
         var ready = checkedState[it.id] ? "Listo" : "Pendiente";
         var expiry = it.dateLabel ? (it.dateLabel + ": " + (expiryState[it.id] || "sin fecha")) : "";
         return '<li>' +
+          '<div class="item-line">' +
           '<span class="ready">' + ready + '</span>' +
-          '<strong>' + escapeHtml(it.name) + '</strong>' +
+          '<strong class="name">' + escapeHtml(it.name) + '</strong>' +
           (it.qty ? '<span class="qty">' + escapeHtml(it.qty) + '</span>' : '') +
           (it.priority ? '<span class="tag">' + escapeHtml(priorityTitle(it.priority)) + '</span>' : '') +
           (expiry ? '<span class="expiry">' + escapeHtml(expiry) + '</span>' : '') +
+          '</div>' +
           '<p>' + escapeHtml(it.why) + '</p>' +
           '</li>';
       }).join("");
@@ -549,15 +676,16 @@
       '<title>Mochila Peru - lista PDF</title>' +
       '<style>' +
       'body{font-family:system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;color:#111;margin:0;background:#f4f2ed;line-height:1.45}' +
-      '.page{max-width:860px;margin:0 auto;padding:28px 22px 44px;background:#fff;min-height:100vh}' +
+      '.page{max-width:900px;margin:0 auto;padding:28px 24px 44px;background:#fff;min-height:100vh}' +
       '.actions{position:sticky;top:0;background:#fff;border-bottom:1px solid #ccc;padding:12px 0;margin-bottom:20px;display:flex;gap:10px;flex-wrap:wrap}' +
       'button{border:1px solid #999;background:#111;color:#fff;border-radius:6px;padding:10px 14px;font:inherit;font-weight:800;cursor:pointer}' +
       'h1{font-size:32px;line-height:1;margin:0 0 8px} h2{font-size:16px;text-transform:uppercase;letter-spacing:.06em;border-bottom:1px solid #bbb;padding-bottom:6px;margin:24px 0 0}' +
       '.meta{display:flex;gap:8px 18px;flex-wrap:wrap;border-left:4px solid #1f5f8b;padding-left:12px;color:#333;margin:16px 0 20px}' +
-      'ul{list-style:none;padding:0;margin:0} li{break-inside:avoid;border-bottom:1px solid #ddd;padding:10px 0;display:grid;grid-template-columns:auto 1fr;gap:4px 10px}' +
-      '.ready{grid-row:1/4;border:1px solid #999;border-radius:4px;padding:2px 6px;font-size:12px;font-weight:800;align-self:start;color:#333}' +
-      '.qty,.tag,.expiry{display:inline-block;margin-left:6px;font-size:12px;border:1px solid #bbb;border-radius:999px;padding:1px 7px;color:#333;font-weight:700}' +
-      'p{grid-column:2;margin:0;color:#444;font-size:13px}.note{margin-top:24px;color:#444;font-size:12px}' +
+      'ul{list-style:none;padding:0;margin:0} li{break-inside:avoid;border-bottom:1px solid #ddd;padding:10px 0}' +
+      '.item-line{display:flex;align-items:baseline;gap:6px 8px;flex-wrap:wrap}' +
+      '.name{font-size:14px}.ready{border:1px solid #999;border-radius:4px;padding:2px 6px;font-size:11px;font-weight:800;color:#333;min-width:58px;text-align:center}' +
+      '.qty,.tag,.expiry{display:inline-flex;align-items:center;font-size:11px;border:1px solid #bbb;border-radius:999px;padding:1px 7px;color:#333;font-weight:700;white-space:nowrap}' +
+      'p{margin:4px 0 0 68px;color:#444;font-size:12px}.note{margin:24px 0 0;color:#444;font-size:12px}' +
       '@media print{body{background:#fff}.page{max-width:none;padding:0}.actions{display:none}.cat{break-inside:avoid}a{color:#000}}' +
       '</style></head><body><main class="page">' +
       '<div class="actions"><button onclick="window.print()">Guardar PDF</button><button onclick="window.close()">Cerrar</button></div>' +

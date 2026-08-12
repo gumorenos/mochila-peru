@@ -21,7 +21,7 @@ Abre `index.html` directamente en el navegador, o sirve la carpeta con cualquier
 npx serve .
 ```
 
-La configuración del hogar, riesgos, vista de lista, checks y fechas de rotación se guardan en `localStorage`, en el navegador del usuario. El botón de compartir codifica una copia de esa lista en la URL; no usa servidor ni base de datos.
+La configuración del hogar, riesgos, vista de lista, checks y fechas de rotación se guardan en `localStorage`, en el navegador del usuario. El botón de compartir codifica una copia compacta de esa lista en el hash de la URL (`#l=...`); no usa servidor ni base de datos.
 
 ## Despliegue recomendado: Cloudflare Pages
 
