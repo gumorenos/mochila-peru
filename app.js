@@ -1,488 +1,397 @@
-/* ============================================================
-   readykit — client-side preparedness checklist engine.
-   No network. No dependencies. State in localStorage.
-   ============================================================ */
 (function () {
   "use strict";
 
-  /* ---------- tiny helpers ---------- */
   var $ = function (sel, root) { return (root || document).querySelector(sel); };
   var $$ = function (sel, root) { return Array.prototype.slice.call((root || document).querySelectorAll(sel)); };
 
   function el(tag, cls, text) {
-    var n = document.createElement(tag);
-    if (cls) n.className = cls;
-    if (text != null) n.textContent = text;
-    return n;
-  }
-
-  // Deterministic small hash for localStorage keys (djb2).
-  function hash(str) {
-    var h = 5381, i = str.length;
-    while (i) { h = (h * 33) ^ str.charCodeAt(--i); }
-    return "readykit:" + (h >>> 0).toString(36);
+    var node = document.createElement(tag);
+    if (cls) node.className = cls;
+    if (text != null) node.textContent = text;
+    return node;
   }
 
   function plural(n, one, many) { return n === 1 ? one : (many || one + "s"); }
-
-  /* ---------- category icons (inline, stroke = currentColor via CSS) ---------- */
-  var ICONS = {
-    water:  '<path d="M12 3s6 6.5 6 11a6 6 0 1 1-12 0c0-4.5 6-11 6-11z"/>',
-    food:   '<path d="M4 5v14m4-14v6a3 3 0 0 1-6 0V5m14-1v16m0-9c-2 0-3-2-3-4s1-3 3-3"/>',
-    medical:'<rect x="4" y="7" width="16" height="12" rx="2"/><path d="M12 11v4m-2-2h4M8 7V5h8v2"/>',
-    docs:   '<path d="M7 3h7l4 4v14H7zM14 3v4h4"/>',
-    power:  '<path d="M13 2 4 14h7l-1 8 9-12h-7z"/>',
-    comms:  '<path d="M4 14a10 10 0 0 1 16 0M7 17a6 6 0 0 1 10 0M12 21v-1"/>',
-    tools:  '<path d="M14 6a4 4 0 0 0-5 5L3 17l4 4 6-6a4 4 0 0 0 5-5l-3 3-2-2 3-3a4 4 0 0 0-2-2z"/>',
-    hygiene:'<path d="M8 3h8v4H8zM6 7h12l-1 14H7zM10 11v6m4-6v6"/>',
-    infant: '<circle cx="12" cy="7" r="3"/><path d="M6 21c0-4 3-7 6-7s6 3 6 7"/>',
-    elderly:'<circle cx="12" cy="5" r="2.5"/><path d="M12 8v7m0 0-3 6m3-6 3 6M8 12h5"/>',
-    pets:   '<path d="M5 11a2 2 0 1 0 0-4 2 2 0 0 0 0 4zm14 0a2 2 0 1 0 0-4 2 2 0 0 0 0 4zM9 7a2 2 0 1 0 0-4 2 2 0 0 0 0 4zm6 0a2 2 0 1 0 0-4 2 2 0 0 0 0 4zM12 12c-3 0-5 2.5-5 5a3 3 0 0 0 3 3c1 0 1.5-.5 2-.5s1 .5 2 .5a3 3 0 0 0 3-3c0-2.5-2-5-5-5z"/>',
-    gobag:  '<path d="M8 7V5a4 4 0 0 1 8 0v2m-11 0h14l-1 14H6z"/>'
-  };
-
-  /* ============================================================
-     THE ENGINE — build a plan from a config.
-     Every item: { name, qty, why, priority }
-     priority: "critical" (life-safety flag) | "first" (pack first) | ""
-     ============================================================ */
-  function buildPlan(cfg) {
-    var people = cfg.adults + cfg.children + cfg.infants + cfg.elderly;
-    people = Math.max(people, 0);
-    var days = cfg.days;
-    var haz = cfg.hazards;
-    var personDays = people * days;
-    var cats = [];
-
-    function cat(id, title, items) {
-      var real = items.filter(Boolean);
-      if (real.length) cats.push({ id: id, title: title, items: real });
-    }
-
-    /* ---- WATER ---- */
-    var waterL = 4 * people * days;
-    cat("water", "Water", [
-      people > 0 && {
-        name: "Drinking & hygiene water",
-        qty: waterL + " L",
-        why: "~4 L/person/day (≈1 gallon) for drinking + basic hygiene, for " + people + " " +
-             plural(people, "person", "people") + " × " + days + " " + plural(days, "day") + ".",
-        priority: "critical"
-      },
-      {
-        name: "Water-purification tablets or unscented bleach",
-        qty: (haz.typhoon || haz.outage) ? "60+ tablets" : "1 pack",
-        why: haz.typhoon
-          ? "Floodwater contaminates supply lines — treat any water you're unsure of before drinking."
-          : "A backup way to make questionable water safe if stored supply runs low.",
-        priority: "first"
-      },
-      {
-        name: "Wide-mouth containers / jerry cans",
-        qty: Math.max(2, Math.ceil(waterL / 20)) + " × 20 L",
-        why: "Store and carry your water; refill from a safe source when the tap is cut.",
-        priority: ""
-      }
-    ]);
-
-    /* ---- FOOD ---- */
-    cat("food", "Food", [
-      people > 0 && {
-        name: "Ready-to-eat, non-perishable food",
-        qty: personDays + " person-days",
-        why: people + " " + plural(people, "person", "people") + " × " + days + " " +
-             plural(days, "day") + " of food that needs no cooking or refrigeration (canned goods, biscuits, noodles).",
-        priority: "first"
-      },
-      { name: "Manual can opener", qty: "1", why: "Half a pantry of canned food is useless without one — and it needs no power.", priority: "" },
-      { name: "Salt, sugar & basic seasoning", qty: "1 small kit", why: "Makes plain rations edible and helps replace what you lose sweating in the heat.", priority: "" },
-      { name: "Reusable plates, cups & utensils", qty: people + " " + plural(people, "set"), why: "Eat and drink hygienically without wasting water on washing every time.", priority: "" }
-    ]);
-
-    /* ---- MEDICAL & FIRST AID ---- */
-    cat("medical", "Medical & First Aid", [
-      { name: "First-aid kit", qty: "1 stocked", why: "Bandages, antiseptic, gauze, tape, scissors — treat cuts and wounds before they get infected.", priority: "critical" },
-      { name: "Pain / fever medication", qty: "1 pack", why: "Paracetamol or ibuprofen for injuries, fever, and headaches when a clinic isn't reachable.", priority: "first" },
-      { name: "Oral rehydration salts (ORS)", qty: (haz.typhoon ? people * 4 : people * 2) + " sachets", why: "Diarrhoea and heat are the real post-disaster killers — ORS treats dehydration fast.", priority: haz.typhoon ? "first" : "" },
-      { name: "Antiseptic & alcohol", qty: "1 bottle", why: "Clean wounds and hands when clean water is scarce and infection risk is high.", priority: "" },
-      { name: "Digital thermometer", qty: "1", why: "Catch fever early in a crowded shelter where illness spreads quickly.", priority: "" }
-    ]);
-
-    /* ---- ELDERLY & MEDICATION ---- */
-    cat("elderly", "Elderly & Medication", [
-      cfg.meds && {
-        name: "Prescription medication",
-        qty: "≥7-day supply",
-        why: "At least a 7-day supply of each prescription, in original labelled containers, plus a copy of the prescription.",
-        priority: "critical"
-      },
-      cfg.elderly > 0 && { name: "Spare eyeglasses / hearing-aid batteries", qty: "1 spare set", why: "A lost or broken pair can leave someone dependent and unsafe in an evacuation.", priority: "first" },
-      cfg.mobility && { name: "Mobility aid & spare parts", qty: "1 + basics", why: "Cane, walker or spare wheelchair parts so limited mobility never traps someone during evacuation.", priority: "first" },
-      (cfg.elderly > 0 || cfg.meds) && { name: "Written medical & contact card", qty: (Math.max(cfg.elderly, 1)) + " " + plural(Math.max(cfg.elderly, 1), "card"), why: "Conditions, allergies, meds and next-of-kin on paper — responders can help even if you can't speak.", priority: "first" }
-    ]);
-
-    /* ---- INFANT & CHILD ---- */
-    var diapers = days * 6;
-    cat("infant", "Infant & Child", [
-      cfg.infants > 0 && { name: "Infant formula / feeding supplies", qty: cfg.infants > 1 ? days + " days × " + cfg.infants : days + " days", why: "If breastfeeding isn't possible, ready-to-feed formula and clean bottles for " + days + " " + plural(days, "day") + ".", priority: "critical" },
-      cfg.infants > 0 && { name: "Diapers", qty: (diapers * cfg.infants) + " (≈6/day)", why: "~6 diapers/day × " + days + " " + plural(days, "day") + (cfg.infants > 1 ? " × " + cfg.infants + " infants." : "."), priority: "first" },
-      cfg.infants > 0 && { name: "Baby wipes & rash cream", qty: "2 packs", why: "Hygiene for infants when running water is unavailable.", priority: "" },
-      cfg.children > 0 && { name: "Comfort item & simple games", qty: cfg.children + " " + plural(cfg.children, "item"), why: "A familiar toy, cards or a book keeps children calm through long, frightening waits.", priority: "" },
-      cfg.children > 0 && { name: "Kid-friendly snacks", qty: cfg.children * days + " days", why: "Familiar snacks children will actually eat during the stress of an emergency.", priority: "" }
-    ]);
-
-    /* ---- POWER & LIGHT ---- */
-    cat("power", "Power & Light", [
-      { name: "Flashlight / headlamp", qty: Math.max(1, cfg.adults + cfg.elderly) + " " + plural(Math.max(1, cfg.adults + cfg.elderly), "unit"), why: "Hands-free light to move safely and signal for help — never use candles near gas or debris.", priority: "critical" },
-      { name: "Spare batteries", qty: "2× device needs", why: "Twice what your flashlight and radio need — dead batteries make every other tool useless.", priority: "first" },
-      { name: "Power bank", qty: (people <= 2 ? "1 × 10,000 mAh" : "2 × 10,000 mAh"), why: "Keep one phone alive for alerts and emergency calls when the grid is down.", priority: "first" },
-      haz.outage && { name: "Solar / hand-crank charger", qty: "1", why: "Recharge lights and phones through a multi-day outage with no wall power at all.", priority: "" },
-      { name: "Candles are a fire risk — skip if gas may leak", qty: "note", why: "After earthquakes and floods, prefer battery light; open flame can ignite leaking gas.", priority: "" }
-    ]);
-
-    /* ---- COMMUNICATION ---- */
-    cat("comms", "Communication", [
-      { name: "Battery / hand-crank radio", qty: "1", why: "The one link to official warnings and instructions when cell networks fail.", priority: "critical" },
-      { name: "Whistle", qty: people + " " + plural(people, "whistle"), why: "Three sharp blasts carry far further than a shout — signal rescuers if trapped.", priority: "critical" },
-      { name: "Written emergency contacts", qty: "1 card/person", why: "Family, neighbours, and local hotlines on paper — phones die, memory fails under stress.", priority: "first" },
-      { name: "Family meeting-point plan", qty: "1 plan", why: "Agree now where to reunite if separated and phones are down.", priority: "first" },
-      cfg.region === "ph" && { name: "PH hotlines: NDRRMC 911 / Red Cross 143", qty: "note", why: "Know the numbers before you need them; save and write them down.", priority: "" }
-    ]);
-
-    /* ---- TOOLS & SAFETY ---- */
-    cat("tools", "Tools & Safety", [
-      { name: "Multi-tool or knife", qty: "1", why: "Cut, open, and repair — the single most-used tool in any kit.", priority: "first" },
-      { name: "Work gloves", qty: Math.max(1, cfg.adults) + " " + plural(Math.max(1, cfg.adults), "pair"), why: "Handle broken glass, debris and sharp metal safely during cleanup and rescue.", priority: "" },
-      { name: "Duct tape & rope / paracord", qty: "1 roll + 15 m", why: "Seal, secure and improvise repairs — from tarps to splints.", priority: "" },
-      haz.fire && { name: "Fire extinguisher (ABC)", qty: "1", why: "Stop a small fire before it spreads; check the gauge is in the green.", priority: "critical" },
-      haz.fire && { name: "Smoke alarm — test & spare battery", qty: "1 check", why: "Early warning is the difference between escaping and being trapped by fire.", priority: "first" },
-      (haz.earthquake || haz.typhoon) && { name: "Sturdy closed-toe shoes", qty: people + " " + plural(people, "pair"), why: "Broken glass and debris cover the floor after quakes and floods — kept by the bed.", priority: "first" },
-      haz.earthquake && { name: "Wrench to shut off gas / water", qty: "1", why: "Shut utilities fast after a quake to prevent gas leaks and flooding.", priority: "first" }
-    ]);
-
-    /* ---- HYGIENE & SANITATION ---- */
-    cat("hygiene", "Hygiene & Sanitation", [
-      { name: "Hand sanitiser & soap", qty: "1 set/person", why: "Disease spreads fast where water and toilets are limited — clean hands prevent it.", priority: "first" },
-      { name: "Toilet supplies (bags, tissue)", qty: personDays + " uses", why: "Plan for sanitation when plumbing fails: heavy-duty bags, tissue, and a lidded bucket.", priority: "" },
-      { name: "Garbage bags", qty: "1 roll", why: "Waste containment, waterproofing, and improvised rain ponchos.", priority: "" },
-      { name: "Feminine hygiene supplies", qty: days + " days", why: "Easy to overlook and hard to source mid-crisis — pack ahead.", priority: "" },
-      (haz.typhoon || haz.earthquake) && { name: "N95 or surgical masks", qty: people * 3 + "+", why: "Dust from collapsed structures and mould after flooding irritate lungs — protect airways.", priority: "" }
-    ]);
-
-    /* ---- volcanic ashfall gets its own emphasis in Tools/Hygiene ---- */
-    if (haz.volcanic) {
-      cats.forEach(function (c) {
-        if (c.id === "hygiene") {
-          c.items.push({ name: "N95 respirator masks (ashfall)", qty: people * 4 + "+", why: "Volcanic ash is sharp, glassy dust — ordinary cloth masks won't protect your lungs.", priority: "critical" });
-        }
-        if (c.id === "tools") {
-          c.items.push({ name: "Sealed goggles (ashfall)", qty: people + " " + plural(people, "pair"), why: "Ash scratches eyes badly — sealed goggles, not just glasses, during ashfall.", priority: "first" });
-          c.items.push({ name: "Damp cloths / plastic sheeting", qty: "1 set", why: "Seal window and door gaps to keep fine ash out of your home.", priority: "" });
-        }
-      });
-    }
-
-    /* ---- PETS ---- */
-    cat("pets", "Pets", [
-      cfg.pets > 0 && { name: "Pet food", qty: (cfg.pets * days) + " pet-days", why: cfg.pets + " " + plural(cfg.pets, "pet") + " × " + days + " " + plural(days, "day") + " of food; pack their usual brand to avoid stomach upset.", priority: "first" },
-      cfg.pets > 0 && { name: "Pet water", qty: (cfg.pets * days) + " L", why: "≈1 L/pet/day on top of the household water above — don't let them drink floodwater.", priority: "first" },
-      cfg.pets > 0 && { name: "Leash, carrier & ID tags", qty: cfg.pets + " " + plural(cfg.pets, "set"), why: "Move pets safely and prove they're yours if you get separated at a shelter.", priority: "" },
-      cfg.pets > 0 && { name: "Pet meds & vaccination records", qty: "1 copy", why: "Many evacuation centres require proof of vaccination to admit animals.", priority: "" }
-    ]);
-
-    /* ---- IMPORTANT DOCUMENTS ---- */
-    cat("docs", "Important Documents", [
-      { name: "IDs & documents in a waterproof bag", qty: "1 pouch", why: "Passports, IDs, land titles, insurance, birth certificates — sealed against water, ready to grab.", priority: "critical" },
-      { name: "Cash in small bills", qty: (people <= 2 ? "≈3 days cash" : "≈" + days + " days cash"), why: "ATMs and card machines fail in outages — small bills for water, transport and food.", priority: "first" },
-      { name: "Printed maps & contact list", qty: "1 set", why: "Evacuation routes and centres on paper when your phone can't load a map.", priority: "" },
-      { name: "USB copy of key documents", qty: "1", why: "Photos of every document on a small drive as a backup to the paper originals.", priority: "" }
-    ]);
-
-    /* ---- GO-BAG ESSENTIALS ---- */
-    cat("gobag", "Go-Bag Essentials", [
-      { name: "Sturdy backpack per person", qty: Math.max(1, cfg.adults + cfg.elderly) + " " + plural(Math.max(1, cfg.adults + cfg.elderly), "bag"), why: "A grab-and-go bag each so you can evacuate in under 60 seconds if told to leave.", priority: "first" },
-      { name: "Emergency blanket / warm layer", qty: people + " " + plural(people, "person"), why: "Shock and wet clothes cause dangerous chills even in warm climates.", priority: "first" },
-      { name: "Rain poncho", qty: people + " " + plural(people, "poncho"), why: "Stay dry and mobile when you have to move through rain or floodwater.", priority: "" },
-      { name: "Change of clothes", qty: "1 set/person", why: "Dry clothes prevent chills and skin infection after getting soaked.", priority: "" },
-      { name: "Local map with your evac route marked", qty: "1", why: "Know your route to higher ground or the nearest centre before you need it.", priority: "" }
-    ]);
-
-    /* stable order */
-    var order = ["water", "food", "medical", "elderly", "infant", "power", "comms", "tools", "hygiene", "pets", "docs", "gobag"];
-    cats.sort(function (a, b) { return order.indexOf(a.id) - order.indexOf(b.id); });
-    return { cats: cats, meta: { people: people, personDays: personDays, waterL: waterL, days: days } };
+  function clampNum(id) {
+    var v = parseInt($("#" + id).value, 10);
+    return isNaN(v) || v < 0 ? 0 : v;
+  }
+  function hash(str) {
+    var h = 5381, i = str.length;
+    while (i) h = (h * 33) ^ str.charCodeAt(--i);
+    return "mochila-peru:" + (h >>> 0).toString(36);
+  }
+  function slug(s) {
+    return s.toLowerCase()
+      .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+      .replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
   }
 
-  /* ============================================================
-     STATE — read config from the form
-     ============================================================ */
+  var LABELS = {
+    zones: {
+      "lima-costa": "Lima / costa",
+      "costa-norte": "Costa norte",
+      sierra: "Sierra",
+      selva: "Selva",
+      "sur-volcanico": "Sur volcanico"
+    },
+    hazards: {
+      sismo: "Sismo",
+      tsunami: "Tsunami",
+      huaico: "Huaico/deslizamiento",
+      lluvias: "Lluvias/inundacion",
+      friaje: "Helada/friaje",
+      ceniza: "Ceniza volcanica",
+      incendio: "Incendio",
+      corte: "Corte de agua/luz"
+    },
+    cats: {
+      agua: "Agua y tratamiento",
+      alimentos: "Alimentos",
+      salud: "Salud y botiquin",
+      comunicacion: "Comunicacion",
+      luz: "Energia y luz",
+      seguridad: "Seguridad y herramientas",
+      higiene: "Higiene",
+      documentos: "Documentos y dinero",
+      ropa: "Ropa y abrigo",
+      bebes: "Bebes y ninos",
+      mayores: "Adultos mayores y movilidad",
+      mascotas: "Mascotas",
+      zona: "Riesgos de tu zona"
+    }
+  };
+
+  var ZONE_HINTS = {
+    "lima-costa": "Costa urbana: prioriza sismo, cortes de agua/luz y rutas de evacuacion.",
+    "costa-norte": "Costa norte: prepara lluvias intensas, inundaciones, zancudos y cortes prolongados.",
+    sierra: "Sierra: agrega abrigo, proteccion contra heladas y rutas alternas por derrumbes.",
+    selva: "Selva: refuerza agua segura, repelente, lluvias, humedad y aislamiento por crecida de rios.",
+    "sur-volcanico": "Sur volcanico: considera ceniza, sismo, frio nocturno y proteccion respiratoria."
+  };
+
+  var ICONS = {
+    agua: "H2O",
+    alimentos: "CAL",
+    salud: "+",
+    comunicacion: "SOS",
+    luz: "W",
+    seguridad: "!",
+    higiene: "HI",
+    documentos: "ID",
+    ropa: "AB",
+    bebes: "BB",
+    mayores: "AM",
+    mascotas: "PET",
+    zona: "PE"
+  };
+
+  var checkedState = {};
+  var currentKey = "";
+  var storageOk = true;
+
   function readConfig() {
-    function num(id) { var v = parseInt($("#" + id).value, 10); return isNaN(v) || v < 0 ? 0 : v; }
     var hazards = {};
     $$("input[name=hazard]").forEach(function (c) { hazards[c.value] = c.checked; });
     return {
-      region: ($("input[name=region]:checked") || {}).value || "ph",
+      zone: ($("input[name=zone]:checked") || {}).value || "lima-costa",
       hazards: hazards,
-      adults: num("adults"),
-      children: num("children"),
-      infants: num("infants"),
-      elderly: num("elderly"),
-      pets: num("pets"),
+      adults: clampNum("adults"),
+      children: clampNum("children"),
+      infants: clampNum("infants"),
+      elderly: clampNum("elderly"),
+      pets: clampNum("pets"),
       meds: $("input[name=meds]").checked,
       mobility: $("input[name=mobility]").checked,
+      apartment: $("input[name=apartment]").checked,
       days: parseInt(($("input[name=days]:checked") || {}).value || "3", 10)
     };
   }
 
   function configKey(cfg) {
     return hash(JSON.stringify([
-      cfg.region, cfg.days, cfg.adults, cfg.children, cfg.infants, cfg.elderly, cfg.pets,
-      cfg.meds, cfg.mobility, cfg.hazards.typhoon, cfg.hazards.earthquake,
-      cfg.hazards.volcanic, cfg.hazards.fire, cfg.hazards.outage
+      cfg.zone, cfg.days, cfg.adults, cfg.children, cfg.infants, cfg.elderly, cfg.pets,
+      cfg.meds, cfg.mobility, cfg.apartment, cfg.hazards.sismo, cfg.hazards.tsunami,
+      cfg.hazards.huaico, cfg.hazards.lluvias, cfg.hazards.friaje, cfg.hazards.ceniza,
+      cfg.hazards.incendio, cfg.hazards.corte
     ]));
   }
-
-  var checkedState = {};   // itemId -> bool
-  var storageOk = true;
-  var currentKey = "";
 
   function loadChecks(key) {
     checkedState = {};
     if (!storageOk) return;
     try {
-      var raw = localStorage.getItem(key);
-      if (raw) checkedState = JSON.parse(raw) || {};
-    } catch (e) { checkedState = {}; }
+      checkedState = JSON.parse(localStorage.getItem(key) || "{}") || {};
+    } catch (e) {
+      checkedState = {};
+    }
   }
+
   function saveChecks() {
     if (!storageOk) return;
-    try { localStorage.setItem(currentKey, JSON.stringify(checkedState)); }
-    catch (e) { storageOk = false; }
+    try {
+      localStorage.setItem(currentKey, JSON.stringify(checkedState));
+    } catch (e) {
+      storageOk = false;
+    }
   }
 
-  /* ============================================================
-     RENDER
-     ============================================================ */
-  function slug(s) { return s.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, ""); }
+  function buildPlan(cfg) {
+    var people = cfg.adults + cfg.children + cfg.infants + cfg.elderly;
+    var days = cfg.days;
+    var personDays = people * days;
+    var waterL = Math.max(0, people * days * 4);
+    var cats = [];
+
+    function cat(id, items) {
+      var real = items.filter(Boolean);
+      if (real.length) cats.push({ id: id, title: LABELS.cats[id], items: real });
+    }
+    function item(name, qty, why, priority) {
+      return { name: name, qty: qty, why: why, priority: priority || "" };
+    }
+
+    cat("agua", [
+      people > 0 && item("Agua para beber e higiene basica", waterL + " L", "Referencia practica: 4 L por persona por dia para beber, cocinar simple y lavarse lo minimo.", "critico"),
+      item("Bidones o galoneras cerradas", Math.max(2, Math.ceil(waterL / 20)) + " de 20 L", "El agua sirve de poco si no esta almacenada en envases limpios, cerrados y faciles de mover.", "primero"),
+      item("Pastillas potabilizadoras o lejia sin perfume", cfg.hazards.lluvias || cfg.hazards.huaico ? "1 caja + gotero" : "1 caja", "Tras lluvias, huaicos o cortes, el agua puede contaminarse aunque se vea clara.", "primero"),
+      item("Botellas chicas para evacuar", Math.max(people, 1) + " unidades", "Sirven para salir rapido sin cargar todo el bidon.")
+    ]);
+
+    cat("alimentos", [
+      people > 0 && item("Alimentos listos para comer", personDays + " persona-dias", "Conservas, galletas, frutos secos, avena instantanea o comida que no dependa de refrigeracion.", "primero"),
+      item("Abrelatas manual", "1", "Parece obvio hasta que todas las latas esperan y no hay luz. Clasico peruano.", "primero"),
+      item("Cubiertos, platos y vasos reutilizables", Math.max(people, 1) + " juegos", "Reduce residuos y evita comer directo de envases sucios."),
+      item("Sal, azucar y sobres de bebida", "1 bolsa pequena", "Ayudan a mantener energia y hacer tolerable la comida de emergencia.")
+    ]);
+
+    cat("salud", [
+      item("Botiquin familiar completo", "1", "Gasas, vendas, curitas, antiseptico, guantes, tijera, esparadrapo y suero fisiologico.", "critico"),
+      item("Paracetamol o ibuprofeno", "1 caja", "Dolor y fiebre son comunes cuando no hay atencion inmediata.", "primero"),
+      item("Sales de rehidratacion oral", Math.max(people * 2, 2) + " sobres", "La deshidratacion por diarrea, calor o mala agua puede complicarse rapido.", "primero"),
+      item("Alcohol, jabon o gel desinfectante", "1 set", "Previene infecciones cuando el agua limpia escasea."),
+      cfg.meds && item("Medicamentos diarios", "7 dias o mas", "Guarda dosis extra, receta o foto de receta, y nombre generico del medicamento.", "critico"),
+      item("Telefonos de emergencia impresos", "1 tarjeta", "Bomberos 116, Policia 105, SAMU 106, emergencias 911 donde aplique, familia y vecinos.", "primero")
+    ]);
+
+    cat("comunicacion", [
+      item("Radio a pilas o manivela", "1", "Cuando internet cae, las indicaciones oficiales llegan por radio.", "critico"),
+      item("Silbato", Math.max(people, 1), "Tres pitidos ayudan a ubicarte si quedas atrapado o separado.", "critico"),
+      item("Lista impresa de contactos y punto de reunion", "1 por familia", "Define antes donde se encuentran si los telefonos no funcionan.", "primero"),
+      item("Mapa simple de rutas seguras", "1", "Marca salida del edificio, zona alta si hay tsunami y centro de reunion vecinal.")
+    ]);
+
+    cat("luz", [
+      item("Linterna o frontal", Math.max(cfg.adults + cfg.elderly, 1), "Luz de manos libres para escaleras, vidrios rotos o evacuacion nocturna.", "critico"),
+      item("Pilas de repuesto", "2 juegos", "Las pilas mueren en el peor momento, con una puntualidad casi artistica.", "primero"),
+      item("Power bank cargado", people <= 2 ? "1 de 10,000 mAh" : "2 de 10,000 mAh", "Mantiene vivo al menos un celular para llamadas y alertas.", "primero"),
+      cfg.hazards.corte && item("Cargador solar o de auto", "1", "Util si el corte dura varios dias o estas aislado.")
+    ]);
+
+    cat("seguridad", [
+      item("Guantes de trabajo", Math.max(cfg.adults, 1) + " pares", "Para mover vidrio, metal, madera y escombros sin cortarte.", "primero"),
+      item("Navaja multiuso", "1", "Sirve para abrir, cortar, ajustar y reparar cosas pequenas."),
+      item("Cinta americana y cuerda", "1 rollo + 10 m", "Improvisa cierres, amarras, reparaciones y senalizacion."),
+      cfg.hazards.sismo && item("Zapatillas cerradas junto a la cama", Math.max(people, 1) + " pares", "Despues de un sismo el piso puede quedar con vidrios y objetos filudos.", "primero"),
+      cfg.hazards.incendio && item("Extintor ABC revisado", "1", "Un fuego pequeno se puede controlar antes de que cierre la salida.", "critico"),
+      cfg.apartment && item("Llaves y plan de evacuacion del edificio", "1 set", "Identifica escaleras, punto de reunion y quien ayuda a vecinos vulnerables.")
+    ]);
+
+    cat("higiene", [
+      item("Papel higienico, panitos y bolsas gruesas", days + " dias", "Sanidad basica si el agua o desague falla."),
+      item("Mascarillas", Math.max(people * 3, 3), "Polvo, humo, escombros, ceniza o refugios concurridos."),
+      item("Toallas higienicas o productos menstruales", "segun hogar", "Es de lo primero que falta y de lo ultimo que se recuerda."),
+      item("Repelente y bloqueador", cfg.zone === "selva" || cfg.zone === "costa-norte" ? "1 por adulto" : "1", "Zancudos, sol y esperas largas no piden permiso."),
+      item("Bolsas hermeticas", "varias", "Separan basura, ropa mojada, documentos y medicinas.")
+    ]);
+
+    cat("documentos", [
+      item("DNI y copias en bolsa impermeable", "1 pouch", "Incluye DNI, partidas, titulos, seguros, recetas, carnets de vacunacion y contactos.", "critico"),
+      item("Efectivo en billetes pequenos", "S/ segun hogar", "Si no hay luz, POS, ATM, Yape o Plin pueden no servir.", "primero"),
+      item("USB o memoria con documentos escaneados", "1", "Backup rapido si pierdes papeles fisicos."),
+      item("Llaves duplicadas", "1 juego", "Casa, auto, candados o deposito de emergencia.")
+    ]);
+
+    cat("ropa", [
+      item("Muda de ropa", Math.max(people, 1) + " sets", "Ropa seca evita frio, irritaciones y problemas de piel."),
+      item("Manta termica o frazada ligera", Math.max(people, 1), "El frio llega incluso en costa si estas mojado o en shock.", "primero"),
+      (cfg.hazards.friaje || cfg.zone === "sierra" || cfg.zone === "sur-volcanico") && item("Abrigo extra, gorro y medias", Math.max(people, 1) + " sets", "Heladas, friaje y noches altoandinas pueden ser mas peligrosas que el hambre.", "critico"),
+      (cfg.hazards.lluvias || cfg.zone === "selva" || cfg.zone === "costa-norte") && item("Poncho impermeable o casaca de lluvia", Math.max(people, 1), "Permite evacuar o hacer cola sin empaparte.")
+    ]);
+
+    cat("bebes", [
+      cfg.infants > 0 && item("Pañales", cfg.infants * days * 6 + " unidades", "Calculo simple: 6 panales por bebe por dia.", "primero"),
+      cfg.infants > 0 && item("Formula o alimento de bebe", days + " dias", "Usa lo que el bebe ya tolera; no experimentes en emergencia.", "critico"),
+      cfg.infants > 0 && item("Panitos, crema y bolsas", "1 set", "Higiene rapida sin agua corriente."),
+      cfg.children > 0 && item("Snacks y objeto de calma", cfg.children + " " + plural(cfg.children, "set"), "Ayuda a que los ninos cooperen durante esperas largas.")
+    ]);
+
+    cat("mayores", [
+      cfg.elderly > 0 && item("Lentes, audifonos o baterias extra", "1 set", "Perder autonomia en evacuacion aumenta el riesgo.", "primero"),
+      cfg.mobility && item("Baston, andador o repuestos", "1 set", "La evacuacion debe funcionar con cortes de luz y escaleras.", "critico"),
+      (cfg.elderly > 0 || cfg.meds) && item("Ficha medica impresa", "1 por persona", "Alergias, diagnosticos, medicinas, dosis y contactos.")
+    ]);
+
+    cat("mascotas", [
+      cfg.pets > 0 && item("Comida para mascota", cfg.pets * days + " mascota-dias", "Usa su alimento habitual para evitar problemas digestivos.", "primero"),
+      cfg.pets > 0 && item("Agua extra para mascota", cfg.pets * days + " L", "No debe beber agua de acequias, charcos o inundacion.", "primero"),
+      cfg.pets > 0 && item("Correa, placa y transportador", cfg.pets + " sets", "Facilita evacuar y entrar a albergues o casas de familiares."),
+      cfg.pets > 0 && item("Vacunas o datos veterinarios", "1 copia", "Puede ser necesario para recibirlos en refugios o traslados.")
+    ]);
+
+    cat("zona", [
+      cfg.hazards.tsunami && item("Ruta a zona alta", "1 mapa marcado", "Si estas en costa, evacua a pie hacia zona alta despues de sismo fuerte o alerta.", "critico"),
+      cfg.hazards.huaico && item("Ruta alterna fuera de quebradas", "1 plan", "No cruces cauces activos; identifica salida por zonas altas o seguras.", "critico"),
+      cfg.hazards.lluvias && item("Botas o calzado impermeable", Math.max(cfg.adults, 1) + " pares", "Agua estancada trae cortes, infecciones y cables caidos.", "primero"),
+      cfg.hazards.ceniza && item("Respiradores N95 y lentes cerrados", Math.max(people * 4, 4) + " mascarillas", "La ceniza volcanica irrita pulmones y ojos; no basta una tela.", "critico"),
+      cfg.hazards.friaje && item("Termo y bebidas calientes", "1 set", "En friaje o helada, conservar temperatura corporal es prioridad."),
+      cfg.zone === "selva" && item("Mosquitero liviano", "1", "Reduce picaduras si debes dormir fuera o con ventanas abiertas.")
+    ]);
+
+    return { cats: cats, meta: { people: people, waterL: waterL, personDays: personDays } };
+  }
 
   function renderSummary(cfg, meta) {
-    var wrap = $("#summary");
-    wrap.innerHTML = "";
-    var card = el("div", "summary__card");
-
-    var lead = el("p", "summary__lead");
-    lead.appendChild(document.createTextNode("Kit for "));
-    var em = el("em", null, meta.people + " " + plural(meta.people, "person", "people"));
-    lead.appendChild(em);
-    lead.appendChild(document.createTextNode(", " + cfg.days + " " + plural(cfg.days, "day") + " of supply."));
-    card.appendChild(lead);
-
-    var facts = el("div", "summary__facts");
-    function fact(label, val) {
-      var f = el("span", "fact");
-      f.appendChild(document.createTextNode(label + " "));
-      f.appendChild(el("b", null, val));
-      facts.appendChild(f);
-    }
-    var parts = [];
-    if (cfg.adults) parts.push(cfg.adults + " " + plural(cfg.adults, "adult"));
-    if (cfg.children) parts.push(cfg.children + " " + plural(cfg.children, "child", "children"));
-    if (cfg.infants) parts.push(cfg.infants + " " + plural(cfg.infants, "infant"));
-    if (cfg.elderly) parts.push(cfg.elderly + " elderly");
-    if (cfg.pets) parts.push(cfg.pets + " " + plural(cfg.pets, "pet"));
-
-    fact("Household", parts.join(", ") || "0 people");
-    fact("Water target", meta.waterL + " L");
-    fact("Food", meta.personDays + " person-days");
-    var hz = Object.keys(cfg.hazards).filter(function (k) { return cfg.hazards[k]; });
-    var hzNames = { typhoon: "Typhoon/flood", earthquake: "Earthquake", volcanic: "Volcanic", fire: "Fire", outage: "Outage" };
-    fact("Hazards", hz.map(function (k) { return hzNames[k]; }).join(", ") || "none selected");
-    fact("Region", cfg.region === "ph" ? "Philippines" : "Generic");
-    card.appendChild(facts);
-    wrap.appendChild(card);
+    var hazards = Object.keys(cfg.hazards).filter(function (k) { return cfg.hazards[k]; })
+      .map(function (k) { return LABELS.hazards[k]; });
+    $("#summary").innerHTML =
+      '<div class="summary__card">' +
+      '<p><strong>' + (meta.people || 0) + ' personas</strong> - ' + cfg.days + ' dias - ' + LABELS.zones[cfg.zone] + '</p>' +
+      '<p>Agua objetivo: <strong>' + meta.waterL + ' L</strong> - comida: <strong>' + meta.personDays + ' persona-dias</strong></p>' +
+      '<p>Riesgos: ' + (hazards.join(", ") || "ninguno seleccionado") + '</p>' +
+      '</div>';
   }
 
   function renderChecklist(plan) {
     var root = $("#checklist");
     root.innerHTML = "";
-
     plan.cats.forEach(function (c) {
-      var card = el("section", "cat");
-      card.setAttribute("aria-labelledby", "cat-" + c.id);
-
+      var section = el("section", "cat");
       var head = el("div", "cat__head");
-      var glyph = el("span", "cat__glyph");
-      glyph.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true">' + (ICONS[c.id] || ICONS.gobag) + "</svg>";
-      head.appendChild(glyph);
-      var h = el("h3", "cat__title", c.title);
-      h.id = "cat-" + c.id;
-      head.appendChild(h);
-      var count = el("span", "cat__count");
-      count.setAttribute("data-cat", c.id);
-      head.appendChild(count);
-      card.appendChild(head);
+      head.appendChild(el("span", "cat__glyph", ICONS[c.id] || "PE"));
+      head.appendChild(el("h3", null, c.title));
+      head.appendChild(el("span", "cat__count"));
+      section.appendChild(head);
 
       var list = el("ul", "cat__list");
-      c.items.forEach(function (item, i) {
-        var id = c.id + "-" + i + "-" + slug(item.name);
+      c.items.forEach(function (it, idx) {
+        var id = c.id + "-" + idx + "-" + slug(it.name);
         var li = el("li", "item");
-        li.dataset.id = id;
         if (checkedState[id]) li.classList.add("is-done");
 
-        var boxWrap = el("span", "item__box");
-        var box = el("input");
-        box.type = "checkbox";
-        box.checked = !!checkedState[id];
-        box.id = "chk-" + id;
-        box.setAttribute("aria-label", item.name + " — " + item.qty);
-        box.addEventListener("change", function () {
-          checkedState[id] = box.checked;
-          li.classList.toggle("is-done", box.checked);
+        var input = el("input");
+        input.type = "checkbox";
+        input.checked = !!checkedState[id];
+        input.id = "chk-" + id;
+        input.addEventListener("change", function () {
+          checkedState[id] = input.checked;
+          li.classList.toggle("is-done", input.checked);
           saveChecks();
           updateMeter();
         });
-        boxWrap.appendChild(box);
-        li.appendChild(boxWrap);
 
-        var main = el("label", "item__main");
-        main.setAttribute("for", "chk-" + id);
-        main.appendChild(el("span", "item__name", item.name));
-        if (item.qty && item.qty !== "note") main.appendChild(el("span", "item__qty", item.qty));
-        if (item.priority === "critical") main.appendChild(el("span", "tag tag--critical", "life-safety"));
-        else if (item.priority === "first") main.appendChild(el("span", "tag tag--first", "pack first"));
-        li.appendChild(main);
+        var box = el("span", "item__box");
+        box.appendChild(input);
+        li.appendChild(box);
 
-        li.appendChild(el("p", "item__why", item.why));
+        var label = el("label", "item__main");
+        label.setAttribute("for", input.id);
+        label.appendChild(el("span", "item__name", it.name));
+        if (it.qty) label.appendChild(el("span", "item__qty", it.qty));
+        if (it.priority === "critico") label.appendChild(el("span", "tag tag--critical", "critico"));
+        if (it.priority === "primero") label.appendChild(el("span", "tag tag--first", "primero"));
+        li.appendChild(label);
+        li.appendChild(el("p", "item__why", it.why));
         list.appendChild(li);
       });
-      card.appendChild(list);
-      root.appendChild(card);
+      section.appendChild(list);
+      root.appendChild(section);
     });
-
     updateMeter();
   }
 
   function updateMeter() {
     var boxes = $$("#checklist input[type=checkbox]");
-    var total = boxes.length;
     var done = boxes.filter(function (b) { return b.checked; }).length;
-    var pct = total ? Math.round((done / total) * 100) : 0;
-
-    var fill = $("#meterFill");
-    fill.style.width = pct + "%";
-    fill.classList.toggle("is-full", pct === 100 && total > 0);
+    var total = boxes.length;
+    var pct = total ? Math.round(done * 100 / total) : 0;
+    $("#meterFill").style.width = pct + "%";
     $("#meterPct").textContent = pct + "%";
-    $("#meterCount").textContent = done + " of " + total;
-
-    // per-category counts
+    $("#meterCount").textContent = done + " de " + total;
     $$(".cat").forEach(function (card) {
-      var cb = $$("input[type=checkbox]", card);
-      var d = cb.filter(function (b) { return b.checked; }).length;
-      var badge = $(".cat__count", card);
-      if (badge) badge.textContent = d + "/" + cb.length;
+      var all = $$("input[type=checkbox]", card);
+      var ok = all.filter(function (b) { return b.checked; }).length;
+      $(".cat__count", card).textContent = ok + "/" + all.length;
     });
   }
 
-  /* ============================================================
-     REGION preset behaviour
-     ============================================================ */
-  function applyRegionHint() {
-    var region = ($("input[name=region]:checked") || {}).value || "ph";
-    $("#regionHint").textContent = region === "ph"
-      ? "Presets tune defaults for Philippine hazards. Follow NDRRMC & PAGASA advisories."
-      : "Generic global defaults. Adjust hazards to match where you live.";
+  function updateZoneHint() {
+    var cfg = readConfig();
+    $("#zoneHint").textContent = ZONE_HINTS[cfg.zone] || "";
+    if (cfg.zone === "costa-norte") {
+      $("input[value=lluvias]").checked = true;
+      $("input[value=huaico]").checked = true;
+    }
+    if (cfg.zone === "sierra") {
+      $("input[value=friaje]").checked = true;
+      $("input[value=huaico]").checked = true;
+    }
+    if (cfg.zone === "selva") {
+      $("input[value=lluvias]").checked = true;
+    }
+    if (cfg.zone === "sur-volcanico") {
+      $("input[value=ceniza]").checked = true;
+      $("input[value=friaje]").checked = true;
+    }
   }
 
-  /* ============================================================
-     BUILD
-     ============================================================ */
   function build(preserveChecks) {
     var cfg = readConfig();
-    var newKey = configKey(cfg);
-    if (!preserveChecks || newKey !== currentKey) {
-      currentKey = newKey;
-      loadChecks(currentKey);
+    var key = configKey(cfg);
+    if (!preserveChecks || key !== currentKey) {
+      currentKey = key;
+      loadChecks(key);
     }
     var plan = buildPlan(cfg);
     renderSummary(cfg, plan.meta);
     renderChecklist(plan);
   }
 
-  /* ============================================================
-     WIRE UP
-     ============================================================ */
   function init() {
-    // storage feature test
-    try { localStorage.setItem("readykit:test", "1"); localStorage.removeItem("readykit:test"); }
-    catch (e) { storageOk = false; }
+    try {
+      localStorage.setItem("mochila-peru:test", "1");
+      localStorage.removeItem("mochila-peru:test");
+    } catch (e) {
+      storageOk = false;
+    }
 
     $("#controls").addEventListener("submit", function (e) {
       e.preventDefault();
       build(true);
-      // gentle scroll to results
-      var kit = $("#kit");
-      if (kit && kit.scrollIntoView) kit.scrollIntoView({ behavior: "smooth", block: "start" });
+      $("#lista").scrollIntoView({ behavior: "smooth", block: "start" });
     });
-
     $("#printBtn").addEventListener("click", function () { window.print(); });
-
     $("#resetBtn").addEventListener("click", function () {
       checkedState = {};
       saveChecks();
-      $$("#checklist input[type=checkbox]").forEach(function (b) {
-        b.checked = false;
-        var li = b.closest(".item");
-        if (li) li.classList.remove("is-done");
-      });
+      $$("#checklist input[type=checkbox]").forEach(function (b) { b.checked = false; });
+      $$(".item").forEach(function (li) { li.classList.remove("is-done"); });
       updateMeter();
     });
-
-    $$("input[name=region]").forEach(function (r) {
-      r.addEventListener("change", applyRegionHint);
+    $$("input[name=zone]").forEach(function (r) {
+      r.addEventListener("change", function () {
+        updateZoneHint();
+        build(false);
+      });
+    });
+    $$("input").forEach(function (i) {
+      if (i.name !== "zone") i.addEventListener("change", function () { build(false); });
     });
 
-    applyRegionHint();
-    renderContour();
-    build(true); // default kit visible on load
+    updateZoneHint();
+    build(false);
   }
 
-  /* ============================================================
-     CONTOUR SIGNATURE — layered topographic lines
-     ============================================================ */
-  function renderContour() {
-    var g = $(".contour__lines");
-    if (!g) return;
-    var W = 1560, H = 520;          // slightly wider than viewBox for drift room
-    var lines = 9;
-    var frag = document.createDocumentFragment();
-
-    for (var i = 0; i < lines; i++) {
-      var baseY = 90 + i * ((H - 130) / (lines - 1));
-      var amp = 26 + (i % 3) * 14;
-      var wavelen = 260 + (i % 4) * 55;
-      var phase = i * 0.9;
-      var d = "M -60 " + baseY.toFixed(1);
-      for (var x = -60; x <= W; x += 24) {
-        var y = baseY
-          + Math.sin((x / wavelen) + phase) * amp
-          + Math.sin((x / (wavelen * 0.42)) + phase * 1.7) * (amp * 0.28);
-        d += " L " + x + " " + y.toFixed(1);
-      }
-      var p = document.createElementNS("http://www.w3.org/2000/svg", "path");
-      p.setAttribute("d", d);
-      // gentle emphasis: a couple of lines pick up the amber/green tint
-      if (i === 3) p.style.stroke = "rgba(246,162,30,0.30)";
-      else if (i === 6) p.style.stroke = "rgba(79,180,119,0.28)";
-      p.style.opacity = (0.35 + (i / lines) * 0.5).toFixed(2);
-      p.style.animationDelay = (-i * 2.4) + "s";
-      frag.appendChild(p);
-    }
-    g.appendChild(frag);
-  }
-
-  if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", init);
-  } else {
-    init();
-  }
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", init);
+  else init();
 })();

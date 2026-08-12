@@ -1,12 +1,12 @@
 {
-  "name": "readykit",
-  "short_name": "readykit",
-  "description": "A region-aware disaster-preparedness checklist for your exact household and hazards. Printable, private, works fully offline.",
+  "name": "Mochila Peru",
+  "short_name": "Mochila Peru",
+  "description": "Checklist familiar de emergencia para hogares en Peru. Privado, imprimible y offline.",
   "start_url": ".",
   "scope": ".",
   "display": "standalone",
-  "background_color": "#0E2A2B",
-  "theme_color": "#0E2A2B",
+  "background_color": "#f7f4ee",
+  "theme_color": "#f7f4ee",
   "icons": [
     {
       "src": "icon-192.png",
