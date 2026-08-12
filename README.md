@@ -11,7 +11,7 @@ Este proyecto es un fork MIT de [`readykit`](https://github.com/Sreenivas-Sadhu-
 - Checklist en español peruano, con referencias a INDECI, COEN, SENAMHI, IGP, CENEPRED, Minsa, Bomberos 116, Policía 105 y SAMU 106.
 - Diseño más sobrio y utilitario: la herramienta aparece en la primera pantalla, sin hero genérico ni capas de tarjetas decorativas.
 - Sigue siendo 100% estática, privada y offline: no hay backend, cuentas, analytics ni llamadas de red.
-- Seguimiento opcional de vencimientos por artículo, con semáforo de vencidos, próximos a vencer y fechas en observación.
+- Seguimiento opcional solo para artículos que sí se rotan, vencen, se prueban o se recargan.
 - Vista por prioridad, filtros por clasificación y orden por recomendado, prioridad, vencimiento o pendientes.
 
 ## Uso local

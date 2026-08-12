@@ -208,45 +208,45 @@
       });
       if (real.length) cats.push({ id: id, title: LABELS.cats[id], items: real });
     }
-    function item(name, qty, why, priority) {
-      return { name: name, qty: qty, why: why, priority: priority || "" };
+    function item(name, qty, why, priority, dateLabel) {
+      return { name: name, qty: qty, why: why, priority: priority || "", dateLabel: dateLabel || "" };
     }
 
     cat("agua", [
-      people > 0 && item("Agua para beber e higiene básica", waterL + " L", "Referencia práctica: 4 L por persona por día para beber, cocinar simple y lavarse lo mínimo.", "crítico"),
-      item("Bidones o galoneras cerradas", Math.max(2, Math.ceil(waterL / 20)) + " de 20 L", "El agua sirve de poco si no está almacenada en envases limpios, cerrados y fáciles de mover.", "primero"),
-      item("Pastillas potabilizadoras o lejía sin perfume", cfg.hazards.lluvias || cfg.hazards.huaico ? "1 caja + gotero" : "1 caja", "Tras lluvias, huaicos o cortes, el agua puede contaminarse aunque se vea clara.", "primero"),
+      people > 0 && item("Agua para beber e higiene básica", waterL + " L", "Referencia práctica: 4 L por persona por día para beber, cocinar simple y lavarse lo mínimo.", "crítico", "Vence"),
+      item("Bidones o galoneras cerradas", Math.max(2, Math.ceil(waterL / 20)) + " de 20 L", "El agua sirve de poco si no está almacenada en envases limpios, cerrados y fáciles de mover.", "primero", "Revisar"),
+      item("Pastillas potabilizadoras o lejía sin perfume", cfg.hazards.lluvias || cfg.hazards.huaico ? "1 caja + gotero" : "1 caja", "Tras lluvias, huaicos o cortes, el agua puede contaminarse aunque se vea clara.", "primero", "Vence"),
       item("Botellas chicas para evacuar", Math.max(people, 1) + " unidades", "Sirven para salir rápido sin cargar todo el bidón.")
     ]);
 
     cat("alimentos", [
-      people > 0 && item("Alimentos listos para comer", personDays + " persona-días", "Conservas, galletas, frutos secos, avena instantánea o comida que no dependa de refrigeración.", "primero"),
+      people > 0 && item("Alimentos listos para comer", personDays + " persona-días", "Conservas, galletas, frutos secos, avena instantánea o comida que no dependa de refrigeración.", "primero", "Vence"),
       item("Abrelatas manual", "1", "Parece obvio hasta que todas las latas esperan y no hay luz. Clásico peruano.", "primero"),
       item("Cubiertos, platos y vasos reutilizables", Math.max(people, 1) + " juegos", "Reduce residuos y evita comer directo de envases sucios."),
-      item("Sal, azúcar y sobres de bebida", "1 bolsa pequeña", "Ayudan a mantener energía y hacer tolerable la comida de emergencia.")
+      item("Sal, azúcar y sobres de bebida", "1 bolsa pequeña", "Ayudan a mantener energía y hacer tolerable la comida de emergencia.", "", "Vence")
     ]);
 
     cat("salud", [
-      item("Botiquín familiar completo", "1", "Gasas, vendas, curitas, antiséptico, guantes, tijera, esparadrapo y suero fisiológico.", "crítico"),
-      item("Paracetamol o ibuprofeno", "1 caja", "Dolor y fiebre son comunes cuando no hay atención inmediata.", "primero"),
-      item("Sales de rehidratación oral", Math.max(people * 2, 2) + " sobres", "La deshidratación por diarrea, calor o mala agua puede complicarse rápido.", "primero"),
-      item("Alcohol, jabón o gel desinfectante", "1 set", "Previene infecciones cuando el agua limpia escasea."),
-      cfg.meds && item("Medicamentos diarios", "7 días o más", "Guarda dosis extra, receta o foto de receta, y nombre genérico del medicamento.", "crítico"),
+      item("Botiquín familiar completo", "1", "Gasas, vendas, curitas, antiséptico, guantes, tijera, esparadrapo y suero fisiológico.", "crítico", "Revisar"),
+      item("Paracetamol o ibuprofeno", "1 caja", "Dolor y fiebre son comunes cuando no hay atención inmediata.", "primero", "Vence"),
+      item("Sales de rehidratación oral", Math.max(people * 2, 2) + " sobres", "La deshidratación por diarrea, calor o mala agua puede complicarse rápido.", "primero", "Vence"),
+      item("Alcohol, jabón o gel desinfectante", "1 set", "Previene infecciones cuando el agua limpia escasea.", "", "Vence"),
+      cfg.meds && item("Medicamentos diarios", "7 días o más", "Guarda dosis extra, receta o foto de receta, y nombre genérico del medicamento.", "crítico", "Vence"),
       item("Teléfonos de emergencia impresos", "1 tarjeta", "Bomberos 116, Policía 105, SAMU 106, emergencias 911 donde aplique, familia y vecinos.", "primero")
     ]);
 
     cat("comunicacion", [
-      item("Radio a pilas o manivela", "1", "Cuando internet cae, las indicaciones oficiales llegan por radio.", "crítico"),
+      item("Radio a pilas o manivela", "1", "Cuando internet cae, las indicaciones oficiales llegan por radio.", "crítico", "Probar"),
       item("Silbato", Math.max(people, 1), "Tres pitidos ayudan a ubicarte si quedas atrapado o separado.", "crítico"),
       item("Lista impresa de contactos y punto de reunión", "1 por familia", "Define antes donde se encuentran si los teléfonos no funcionan.", "primero"),
       item("Mapa simple de rutas seguras", "1", "Marca salida del edificio, zona alta si hay tsunami y centro de reunión vecinal.")
     ]);
 
     cat("luz", [
-      item("Linterna o frontal", Math.max(cfg.adults + cfg.elderly, 1), "Luz de manos libres para escaleras, vidrios rotos o evacuación nocturna.", "crítico"),
-      item("Pilas de repuesto", "2 juegos", "Las pilas mueren en el peor momento, con una puntualidad casi artística.", "primero"),
-      item("Power bank cargado", people <= 2 ? "1 de 10,000 mAh" : "2 de 10,000 mAh", "Mantiene vivo al menos un celular para llamadas y alertas.", "primero"),
-      cfg.hazards.corte && item("Cargador solar o de auto", "1", "Útil si el corte dura varios días o estás aislado.")
+      item("Linterna o frontal", Math.max(cfg.adults + cfg.elderly, 1), "Luz de manos libres para escaleras, vidrios rotos o evacuación nocturna.", "crítico", "Probar"),
+      item("Pilas de repuesto", "2 juegos", "Las pilas mueren en el peor momento, con una puntualidad casi artística.", "primero", "Vence"),
+      item("Power bank cargado", people <= 2 ? "1 de 10,000 mAh" : "2 de 10,000 mAh", "Mantiene vivo al menos un celular para llamadas y alertas.", "primero", "Recargar"),
+      cfg.hazards.corte && item("Cargador solar o de auto", "1", "Útil si el corte dura varios días o estás aislado.", "", "Probar")
     ]);
 
     cat("seguridad", [
@@ -254,7 +254,7 @@
       item("Navaja multiuso", "1", "Sirve para abrir, cortar, ajustar y reparar cosas pequeñas."),
       item("Cinta americana y cuerda", "1 rollo + 10 m", "Improvisa cierres, amarras, reparaciones y señalización."),
       cfg.hazards.sismo && item("Zapatillas cerradas junto a la cama", Math.max(people, 1) + " pares", "Después de un sismo el piso puede quedar con vidrios y objetos filudos.", "primero"),
-      cfg.hazards.incendio && item("Extintor ABC revisado", "1", "Un fuego pequeño se puede controlar antes de que cierre la salida.", "crítico"),
+      cfg.hazards.incendio && item("Extintor ABC revisado", "1", "Un fuego pequeño se puede controlar antes de que cierre la salida.", "crítico", "Revisar"),
       cfg.apartment && item("Llaves y plan de evacuación del edificio", "1 set", "Identifica escaleras, punto de reunión y quien ayuda a vecinos vulnerables.")
     ]);
 
@@ -262,7 +262,7 @@
       item("Papel higiénico, pañitos y bolsas gruesas", days + " días", "Sanidad básica si el agua o desagüe falla."),
       item("Mascarillas", Math.max(people * 3, 3), "Polvo, humo, escombros, ceniza o refugios concurridos."),
       item("Toallas higiénicas o productos menstruales", "según hogar", "Es de lo primero que falta y de lo último que se recuerda."),
-      item("Repelente y bloqueador", cfg.zone === "selva" || cfg.zone === "costa-norte" ? "1 por adulto" : "1", "Zancudos, sol y esperas largas no piden permiso."),
+      item("Repelente y bloqueador", cfg.zone === "selva" || cfg.zone === "costa-norte" ? "1 por adulto" : "1", "Zancudos, sol y esperas largas no piden permiso.", "", "Vence"),
       item("Bolsas herméticas", "varias", "Separan basura, ropa mojada, documentos y medicinas.")
     ]);
 
@@ -281,20 +281,20 @@
     ]);
 
     cat("bebes", [
-      cfg.infants > 0 && item("Pañales", cfg.infants * days * 6 + " unidades", "Cálculo simple: 6 pañales por bebé por día.", "primero"),
-      cfg.infants > 0 && item("Fórmula o alimento de bebé", days + " días", "Usa lo que el bebé ya tolera; no experimentes en emergencia.", "crítico"),
+      cfg.infants > 0 && item("Pañales", cfg.infants * days * 6 + " unidades", "Cálculo simple: 6 pañales por bebé por día.", "primero", "Revisar"),
+      cfg.infants > 0 && item("Fórmula o alimento de bebé", days + " días", "Usa lo que el bebé ya tolera; no experimentes en emergencia.", "crítico", "Vence"),
       cfg.infants > 0 && item("Pañitos, crema y bolsas", "1 set", "Higiene rápida sin agua corriente."),
       cfg.children > 0 && item("Snacks y objeto de calma", cfg.children + " " + plural(cfg.children, "set"), "Ayuda a que los niños cooperen durante esperas largas.")
     ]);
 
     cat("mayores", [
-      cfg.elderly > 0 && item("Lentes, audífonos o baterías extra", "1 set", "Perder autonomía en evacuación aumenta el riesgo.", "primero"),
+      cfg.elderly > 0 && item("Lentes, audífonos o baterías extra", "1 set", "Perder autonomía en evacuación aumenta el riesgo.", "primero", "Revisar"),
       cfg.mobility && item("Bastón, andador o repuestos", "1 set", "La evacuación debe funcionar con cortes de luz y escaleras.", "crítico"),
       (cfg.elderly > 0 || cfg.meds) && item("Ficha médica impresa", "1 por persona", "Alergias, diagnósticos, medicinas, dosis y contactos.")
     ]);
 
     cat("mascotas", [
-      cfg.pets > 0 && item("Comida para mascota", cfg.pets * days + " mascota-días", "Usa su alimento habitual para evitar problemas digestivos.", "primero"),
+      cfg.pets > 0 && item("Comida para mascota", cfg.pets * days + " mascota-días", "Usa su alimento habitual para evitar problemas digestivos.", "primero", "Vence"),
       cfg.pets > 0 && item("Agua extra para mascota", cfg.pets * days + " L", "No debe beber agua de acequias, charcos o inundación.", "primero"),
       cfg.pets > 0 && item("Correa, placa y transportador", cfg.pets + " sets", "Facilita evacuar y entrar a albergues o casas de familiares."),
       cfg.pets > 0 && item("Vacunas o datos veterinarios", "1 copia", "Puede ser necesario para recibirlos en refugios o traslados.")
@@ -304,7 +304,7 @@
       cfg.hazards.tsunami && item("Ruta a zona alta", "1 mapa marcado", "Si estás en costa, evacúa a pie hacia zona alta después de sismo fuerte o alerta.", "crítico"),
       cfg.hazards.huaico && item("Ruta alterna fuera de quebradas", "1 plan", "No cruces cauces activos; identifica salida por zonas altas o seguras.", "crítico"),
       cfg.hazards.lluvias && item("Botas o calzado impermeable", Math.max(cfg.adults, 1) + " pares", "Agua estancada trae cortes, infecciones y cables caídos.", "primero"),
-      cfg.hazards.ceniza && item("Respiradores N95 y lentes cerrados", Math.max(people * 4, 4) + " mascarillas", "La ceniza volcánica irrita pulmones y ojos; no basta una tela.", "crítico"),
+      cfg.hazards.ceniza && item("Respiradores N95 y lentes cerrados", Math.max(people * 4, 4) + " mascarillas", "La ceniza volcánica irrita pulmones y ojos; no basta una tela.", "crítico", "Revisar"),
       cfg.hazards.friaje && item("Termo y bebidas calientes", "1 set", "En friaje o helada, conservar temperatura corporal es prioridad."),
       cfg.zone === "selva" && item("Mosquitero liviano", "1", "Reduce picaduras si debes dormir fuera o con ventanas abiertas.")
     ]);
@@ -349,6 +349,8 @@
       if (opts.sort === "expiry") {
         var ad = daysUntil(expiryState[a.id]);
         var bd = daysUntil(expiryState[b.id]);
+        if (!a.dateLabel && b.dateLabel) return 1;
+        if (a.dateLabel && !b.dateLabel) return -1;
         if (ad == null && bd != null) return 1;
         if (ad != null && bd == null) return -1;
         if (ad != null && bd != null && ad !== bd) return ad - bd;
@@ -397,14 +399,16 @@
     li.appendChild(label);
     li.appendChild(el("p", "item__why", it.why));
 
+    if (!it.dateLabel) return li;
+
     var expiry = el("div", "item__expiry");
-    var expiryLabel = el("label", null, "Vence / revisar");
+    var expiryLabel = el("label", null, it.dateLabel);
     var expiryInput = el("input");
     expiryInput.type = "date";
     expiryInput.id = "exp-" + id;
     expiryInput.name = "expiry-" + id;
     expiryInput.value = expiryState[id] || "";
-    expiryInput.setAttribute("aria-label", "Fecha de vencimiento o revisión para " + it.name);
+    expiryInput.setAttribute("aria-label", "Fecha para " + it.dateLabel.toLowerCase() + " " + it.name);
     var expiryStatus = el("span", "expiry-status", expiryText(expiryInput.value));
     var statusClass = expiryClass(expiryInput.value);
     if (statusClass) expiryStatus.classList.add(statusClass);
@@ -485,7 +489,8 @@
   }
 
   function updateExpirySummary() {
-    var dates = Object.keys(expiryState).map(function (id) { return expiryState[id]; }).filter(Boolean);
+    var trackable = currentPlan ? flatItems(currentPlan).filter(function (it) { return it.dateLabel; }) : [];
+    var dates = trackable.map(function (it) { return expiryState[it.id]; }).filter(Boolean);
     var expired = 0;
     var soon = 0;
     var watch = 0;
@@ -499,7 +504,7 @@
     var target = $("#expirySummary");
     if (!target) return;
     if (!dates.length) {
-      target.textContent = "Sin fechas de vencimiento registradas.";
+      target.textContent = "Sin fechas de rotación registradas.";
       target.className = "expiry-summary";
       return;
     }
