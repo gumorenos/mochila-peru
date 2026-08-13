@@ -1,0 +1,233 @@
+:root {
+  --ink: #1d2427;
+  --muted: #657178;
+  --line: #d7d0c4;
+  --line-strong: #9f978b;
+  --bg: #f4f2ed;
+  --paper: #ffffff;
+  --red: #9f1d1d;
+  --blue: #1f5f8b;
+  --green: #22734d;
+  --sans: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0;
+  color: var(--ink);
+  background: var(--bg);
+  font-family: var(--sans);
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+.actions {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  display: flex;
+  gap: 8px;
+  padding: 10px 16px;
+  background: rgba(244, 242, 237, .96);
+  border-bottom: 1px solid var(--line);
+}
+
+button {
+  border: 1px solid var(--line-strong);
+  border-radius: 6px;
+  background: #fff;
+  color: var(--ink);
+  padding: 9px 13px;
+  font: inherit;
+  font-weight: 800;
+}
+
+.sheet {
+  width: min(920px, 100%);
+  min-height: 100vh;
+  margin: 0 auto;
+  padding: 28px 24px 44px;
+  background: var(--paper);
+}
+
+.loading,
+.empty {
+  color: var(--muted);
+}
+
+.title {
+  margin: 0 0 14px;
+  font-size: 34px;
+  line-height: 1;
+  letter-spacing: 0;
+}
+
+.meta {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 1px;
+  margin: 0 0 14px;
+  border: 1px solid var(--line);
+  background: var(--line);
+}
+
+.meta__cell {
+  min-width: 0;
+  padding: 8px 9px;
+  background: #fff;
+}
+
+.meta__label {
+  display: block;
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+}
+
+.meta__value {
+  display: block;
+  margin-top: 2px;
+  font-weight: 800;
+  overflow-wrap: anywhere;
+}
+
+.hazards {
+  margin: 0 0 24px;
+  padding-left: 12px;
+  border-left: 4px solid var(--blue);
+  color: var(--muted);
+}
+
+.hazards strong {
+  color: var(--ink);
+}
+
+.category {
+  margin-top: 22px;
+  break-inside: avoid;
+}
+
+.category__title {
+  margin: 0;
+  padding-bottom: 6px;
+  border-bottom: 2px solid var(--line-strong);
+  font-size: 15px;
+  letter-spacing: .05em;
+  text-transform: uppercase;
+}
+
+.items {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.item {
+  display: grid;
+  grid-template-columns: 86px minmax(0, 1fr);
+  gap: 10px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--line);
+  break-inside: avoid;
+}
+
+.ready {
+  align-self: start;
+  display: inline-block;
+  min-width: 72px;
+  padding: 3px 6px;
+  border: 1px solid var(--line-strong);
+  border-radius: 4px;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 800;
+  text-align: center;
+}
+
+.ready--done {
+  border-color: var(--green);
+  color: var(--green);
+}
+
+.item__main {
+  min-width: 0;
+}
+
+.item__line {
+  display: flex;
+  align-items: baseline;
+  gap: 6px 8px;
+  flex-wrap: wrap;
+}
+
+.item__name {
+  font-weight: 850;
+}
+
+.pill {
+  display: inline-flex;
+  max-width: 100%;
+  align-items: center;
+  padding: 2px 7px;
+  border: 1px solid var(--line-strong);
+  border-radius: 999px;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 750;
+  overflow-wrap: anywhere;
+}
+
+.pill--priority {
+  color: var(--red);
+}
+
+.item__why {
+  margin: 4px 0 0;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.note {
+  margin: 26px 0 0;
+  color: var(--muted);
+  font-size: 11px;
+}
+
+@media (max-width: 640px) {
+  body { font-size: 13px; }
+  .sheet { padding: 22px 18px 36px; }
+  .title { font-size: 30px; }
+  .meta { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .item { grid-template-columns: 1fr; gap: 5px; }
+  .ready { width: max-content; }
+}
+
+@page {
+  margin: 14mm;
+}
+
+@media print {
+  body {
+    background: #fff;
+    font-size: 11px;
+  }
+  .actions { display: none; }
+  .sheet {
+    width: 100%;
+    min-height: 0;
+    padding: 0;
+  }
+  .title { font-size: 26px; }
+  .meta {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+  }
+  .category { margin-top: 16px; }
+  .item {
+    grid-template-columns: 70px minmax(0, 1fr);
+    padding: 7px 0;
+  }
+  .item__why { font-size: 10px; }
+}
