@@ -97,16 +97,30 @@
 
   function init() {
     var saveButton = document.getElementById("savePdf");
-    render(readSnapshot());
+    var printButton = document.getElementById("printPdf");
+    var snapshot = readSnapshot();
+    render(snapshot);
     saveButton.addEventListener("click", function () {
-      printPage(saveButton);
+      var original = saveButton.textContent;
+      if (!window.MochilaPdf || !window.MochilaPdf.save) {
+        printPage(saveButton);
+        return;
+      }
+      saveButton.textContent = "Generando...";
+      window.MochilaPdf.save(snapshot).then(function () {
+        saveButton.textContent = "PDF listo";
+        setTimeout(function () { saveButton.textContent = original; }, 1400);
+      }).catch(function () {
+        saveButton.textContent = "Cancelado";
+        setTimeout(function () { saveButton.textContent = original; }, 1400);
+      });
+    });
+    printButton.addEventListener("click", function () {
+      printPage(printButton);
     });
     document.getElementById("closePdf").addEventListener("click", function () {
       window.close();
     });
-    setTimeout(function () {
-      window.print();
-    }, 500);
   }
 
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", init);

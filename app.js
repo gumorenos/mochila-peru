@@ -682,24 +682,38 @@
     };
   }
 
-  function openPdfView(button) {
+  async function downloadPdf(button) {
     var original = button.textContent;
-    var pdfUrl = new URL("pdf.html", window.location.href);
-    pdfUrl.search = "v=" + Date.now().toString(36);
+    var snapshot = printableSnapshot();
+    if (window.MochilaPdf && window.MochilaPdf.save) {
+      button.textContent = "Generando...";
+      try {
+        await window.MochilaPdf.save(snapshot);
+        button.textContent = "PDF listo";
+      } catch (e) {
+        button.textContent = "Cancelado";
+      }
+      setTimeout(function () { button.textContent = original; }, 1600);
+      return;
+    }
+
     try {
-      localStorage.setItem("mochila-peru:print-snapshot", JSON.stringify(printableSnapshot()));
+      localStorage.setItem("mochila-peru:print-snapshot", JSON.stringify(snapshot));
     } catch (e) {
       button.textContent = "Sin storage";
       setTimeout(function () { button.textContent = original; }, 1800);
       return;
     }
+
+    var pdfUrl = new URL("pdf.html", window.location.href);
+    pdfUrl.search = "v=" + Date.now().toString(36);
     var win = window.open(pdfUrl.toString(), "_blank");
     if (!win) {
       button.textContent = "Permite ventanas";
       setTimeout(function () { button.textContent = original; }, 1800);
       return;
     }
-    button.textContent = "PDF abierto";
+    button.textContent = "Vista PDF";
     setTimeout(function () { button.textContent = original; }, 1600);
   }
 
@@ -943,7 +957,7 @@
     $("#summaryBtn").addEventListener("click", function () {
       writeClipboard(summaryText(), $("#summaryBtn"), "Resumen copiado");
     });
-    $("#printBtn").addEventListener("click", function () { openPdfView($("#printBtn")); });
+    $("#printBtn").addEventListener("click", function () { downloadPdf($("#printBtn")); });
     $("#resetBtn").addEventListener("click", function () {
       checkedState = {};
       saveChecks();
